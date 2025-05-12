@@ -1,9 +1,15 @@
 import { Scene } from 'phaser';
 
+interface CardInfo {
+  name: string,
+  hidingCardTween: Phaser.Tweens.TweenChain 
+}
+
 export class Game extends Scene {
 
   DEFAULT_COLOR = 0x496933;
   CARD_SIZE = 96;
+  PLAYS_PER_CYCLE = 2;
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -23,31 +29,31 @@ export class Game extends Scene {
       
   create() {
     const quantityOfCards = 40;
+    let plays = 0;
+    let interactive = true, idle = false;
 
-    const groupOfCards = this.add.group();
+    const cards: Phaser.GameObjects.Image[] = []
     for (const key of this.keys) {
-      const pair: Phaser.GameObjects.GameObject[] = groupOfCards.createMultiple({
-        key: key,
-        quantity: 2,
-        setScale: {x: 0, y: 1},
-        setXY: {x: 0, y: 0},
-      })
-
-      pair.forEach(p => p.setName(key));
+      const cardA = this.add.image(0, 0, key);
+      const cardB = this.add.image(0, 0, key);
+      cardA.setScale(0, 1);
+      cardB.setScale(0, 1);
+      cardA.setName(key);
+      cardB.setName(key);
+      cards.push(cardA, cardB);
     }
 
-    groupOfCards.shuffle();
+    Phaser.Actions.Shuffle(cards);
 
     const rectangles: Phaser.GameObjects.Rectangle[] = [];
     for (let i = 0; i < quantityOfCards; i++)
       rectangles.push(this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR));
 
     for (let i = 0; i < quantityOfCards; i++) {
-      const cards = groupOfCards.getChildren();
       cards[i].setInteractive();
       rectangles[i].setInteractive();
 
-      const openingCard = this.add.tweenchain({
+      const revealingCard = this.add.tweenchain({
         tweens: [{
           targets: rectangles[i],
           scaleX: 0,
@@ -61,10 +67,16 @@ export class Game extends Scene {
           ease: "Linear",
         }],
         paused: true,
-        persist: true
+        persist: true,
+        onStart: () => {
+          interactive = false;
+        },
+        onComplete: () => {
+          interactive = true;
+        },
       })
 
-      const closingCard = this.add.tweenchain({
+      const hidingCard = this.add.tweenchain({
         tweens: [{
           targets: cards[i],
           scaleX: 0,
@@ -77,17 +89,46 @@ export class Game extends Scene {
           duration: 250,
           ease: "Linear",
         }],
+        onStart: () => {
+          interactive = false;
+        },
+        onComplete: () => {
+          interactive = true;
+        },
         paused: true,
         persist: true
       })
 
-      rectangles[i].on("pointerup", () => openingCard.restart());
-      cards[i].on("pointerup", () => {
-        closingCard.restart()
-        console.log(cards[i].name);
+      rectangles[i].on("pointerup", () => {
+        if (interactive && !idle) {
+          if (plays++ < 1) {
+            revealingCard.restart();
+            return;
+          }
+          revealingCard.restart();
+          idle = true
+          this.events.emit("wait");
+        }
       });
-      setTimeout(() => openingCard.restart(), 3000)
+
+      cards[i].on("pointerup", () => {
+        if (interactive && !idle) {
+          hidingCard.restart();
+        }
+      })
     }
+
+    const allowInteraction = this.add.timeline({
+      at: 1000,
+      run: () => {
+        idle = false;
+        plays = 0;
+      }
+    })
+
+    this.events.on("wait", () => {
+      allowInteraction.play()
+    });
 
     const cellGap = 10;
     const quantityOfColumns = 8;
@@ -101,11 +142,10 @@ export class Game extends Scene {
       x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
     })
 
-    Phaser.Actions.GridAlign(groupOfCards.getChildren(), {
+    Phaser.Actions.GridAlign(cards, {
       width: quantityOfColumns, height: quantityOfRows,
       cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
       x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
     })
-
   }
 }
