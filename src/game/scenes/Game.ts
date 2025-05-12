@@ -1,8 +1,9 @@
 import { Scene } from 'phaser';
 
 interface CardInfo {
-  name: string,
-  hidingCardTween: Phaser.Tweens.TweenChain 
+  card: Phaser.GameObjects.Image,
+  hidingCardTween: Phaser.Tweens.TweenChain,
+  removingCardTween: Phaser.Tweens.Tween
 }
 
 export class Game extends Scene {
@@ -31,8 +32,11 @@ export class Game extends Scene {
     const quantityOfCards = 40;
     let plays = 0;
     let interactive = true, idle = false;
+    let pairOfCards: CardInfo[] = [];
 
     const cards: Phaser.GameObjects.Image[] = []
+    const rectangles: Phaser.GameObjects.Rectangle[] = [];
+
     for (const key of this.keys) {
       const cardA = this.add.image(0, 0, key);
       const cardB = this.add.image(0, 0, key);
@@ -45,27 +49,19 @@ export class Game extends Scene {
 
     Phaser.Actions.Shuffle(cards);
 
-    const rectangles: Phaser.GameObjects.Rectangle[] = [];
-    for (let i = 0; i < quantityOfCards; i++)
-      rectangles.push(this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR));
-
     for (let i = 0; i < quantityOfCards; i++) {
-      cards[i].setInteractive();
-      rectangles[i].setInteractive();
+      const rectangle = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      rectangles.push(rectangle);
 
-      const revealingCard = this.add.tweenchain({
-        tweens: [{
-          targets: rectangles[i],
-          scaleX: 0,
-          duration: 250,
-          ease: "Linear",
-        },
-        {
-          targets: cards[i],
-          scaleX: 1,
-          duration: 250,
-          ease: "Linear",
-        }],
+      rectangle.setInteractive();
+      cards[i].setInteractive();
+
+      const tween = {
+        scaleX: 0,
+        duration: 250,
+        ease: "Linear",
+      }
+      const tweenChain = {
         paused: true,
         persist: true,
         onStart: () => {
@@ -74,33 +70,45 @@ export class Game extends Scene {
         onComplete: () => {
           interactive = true;
         },
+      }
+      const revealingCard = this.add.tweenchain({
+        tweens: [
+          {...tween, targets: rectangles[i]},
+          {...tween, targets: cards[i], scaleX: 1}
+        ],
+        ...tweenChain
       })
 
       const hidingCard = this.add.tweenchain({
-        tweens: [{
-          targets: cards[i],
-          scaleX: 0,
-          duration: 250,
-          ease: "Linear",
-        },
-        {
-          targets: rectangles[i],
-          scaleX: 1,
-          duration: 250,
-          ease: "Linear",
-        }],
-        onStart: () => {
-          interactive = false;
-        },
-        onComplete: () => {
-          interactive = true;
-        },
+        tweens: [
+          {...tween, targets: cards[i]},
+          {...tween, targets: rectangles[i], scaleX: 1}
+        ],
+        ...tweenChain
+      })
+
+      const removingCard = this.add.tween({
         paused: true,
-        persist: true
+        targets: cards[i],
+        scaleX: 0,
+        scaleY: 0,
+        duration: 500,
+        ease: "Linear",
+        onComplete: () => {
+          revealingCard.destroy();
+          hidingCard.destroy();
+          rectangles[i].destroy();
+          cards[i].destroy();
+        }
       })
 
       rectangles[i].on("pointerup", () => {
         if (interactive && !idle) {
+          pairOfCards.push({
+            card: cards[i],
+            hidingCardTween: hidingCard,
+            removingCardTween: removingCard
+          })
           if (plays++ < 1) {
             revealingCard.restart();
             return;
@@ -121,6 +129,14 @@ export class Game extends Scene {
     const allowInteraction = this.add.timeline({
       at: 1000,
       run: () => {
+        if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
+          pairOfCards.forEach(it => it.removingCardTween.play())
+        }
+        else {
+          pairOfCards.forEach(it => it.hidingCardTween.restart())
+        }
+        pairOfCards.splice(0, pairOfCards.length);
+
         idle = false;
         plays = 0;
       }
