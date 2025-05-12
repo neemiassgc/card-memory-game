@@ -10,7 +10,9 @@ export class Game extends Scene {
 
   DEFAULT_COLOR = 0x496933;
   CARD_SIZE = 96;
-  PLAYS_PER_CYCLE = 2;
+  MAX_TRIES = 10;
+
+  textDisplay: Phaser.GameObjects.Text;
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -27,10 +29,30 @@ export class Game extends Scene {
     for (const key of this.keys)
       this.load.svg(key, `assets/${key}.svg`, {width: this.CARD_SIZE, height: this.CARD_SIZE}) 
   }
-      
+
   create() {
+    this.createBoard();
+
+    this.createTextDisplay();
+  }
+
+  createTextDisplay() {
+    this.textDisplay = this.add.text(this.scale.width / 2, this.CARD_SIZE / 3, `TRIES 00/${this.MAX_TRIES}`, {
+      color: "#ffff",
+      fontSize: "50px"
+    });
+    this.textDisplay.setX(this.scale.width / 2 - this.textDisplay.width / 2);
+  }
+
+  setRemainingTries(value: number) {
+    const remainingTries = this.MAX_TRIES - value;
+    this.textDisplay.setText(`TRIES ${(remainingTries <= 9 ? "0" : "") + remainingTries}/${this.MAX_TRIES}`)
+  }
+      
+  createBoard() {
     const quantityOfCards = 40;
     let plays = 0;
+    let tries = this.MAX_TRIES;
     let interactive = true, idle = false;
     let pairOfCards: CardInfo[] = [];
 
@@ -134,6 +156,7 @@ export class Game extends Scene {
         }
         else {
           pairOfCards.forEach(it => it.hidingCardTween.restart())
+          this.setRemainingTries(--tries);
         }
         pairOfCards.splice(0, pairOfCards.length);
 
