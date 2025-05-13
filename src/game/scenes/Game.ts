@@ -13,6 +13,7 @@ export class Game extends Scene {
   MAX_TRIES = 10;
 
   textDisplay: Phaser.GameObjects.Text;
+  interactive = false;
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -32,7 +33,6 @@ export class Game extends Scene {
 
   create() {
     this.createBoard();
-
     this.createTextDisplay();
   }
 
@@ -53,7 +53,7 @@ export class Game extends Scene {
     const quantityOfCards = 40;
     let plays = 0;
     let tries = this.MAX_TRIES;
-    let interactive = true, idle = false;
+    let idle = false;
     let pairOfCards: CardInfo[] = [];
 
     const cards: Phaser.GameObjects.Image[] = []
@@ -73,6 +73,7 @@ export class Game extends Scene {
 
     for (let i = 0; i < quantityOfCards; i++) {
       const rectangle = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      rectangle.setAlpha(0);
       rectangles.push(rectangle);
 
       rectangle.setInteractive();
@@ -87,10 +88,10 @@ export class Game extends Scene {
         paused: true,
         persist: true,
         onStart: () => {
-          interactive = false;
+          this.interactive = false;
         },
         onComplete: () => {
-          interactive = true;
+          this.interactive = true;
         },
       }
       const revealingCard = this.add.tweenchain({
@@ -117,15 +118,17 @@ export class Game extends Scene {
         duration: 500,
         ease: "Linear",
         onComplete: () => {
+          rectangle.off("pointerup");
+          cards[i].off("pointerup");
           revealingCard.destroy();
           hidingCard.destroy();
-          rectangles[i].destroy();
+          rectangle.destroy();
           cards[i].destroy();
         }
       })
 
-      rectangles[i].on("pointerup", () => {
-        if (interactive && !idle) {
+      rectangle.on("pointerup", () => {
+        if (this.interactive && !idle) {
           pairOfCards.push({
             card: cards[i],
             hidingCardTween: hidingCard,
@@ -140,15 +143,9 @@ export class Game extends Scene {
           this.events.emit("wait");
         }
       });
-
-      cards[i].on("pointerup", () => {
-        if (interactive && !idle) {
-          hidingCard.restart();
-        }
-      })
     }
 
-    const allowInteraction = this.add.timeline({
+    const cardMatching = this.add.timeline({
       at: 1000,
       run: () => {
         if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
@@ -166,7 +163,7 @@ export class Game extends Scene {
     })
 
     this.events.on("wait", () => {
-      allowInteraction.play()
+      cardMatching.play()
     });
 
     const cellGap = 10;
@@ -185,6 +182,34 @@ export class Game extends Scene {
       width: quantityOfColumns, height: quantityOfRows,
       cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
       x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
+    })
+
+    this.boardAnimation(rectangles);
+  }
+  boardAnimation(rectangles: Phaser.GameObjects.Rectangle[]) {
+    const steps = [
+      0, 8, 16, 24, 32,
+      1, 9, 17, 25, 33,
+      2, 10, 18, 26, 34,
+      3, 11, 19, 27, 35,
+      4, 12, 20, 28, 36,
+      5, 13, 21, 29, 37,
+      6, 14, 22, 30, 38,
+      7, 15, 23, 31, 39
+    ];
+
+    const tweens = steps.map(it => ({
+      targets: rectangles[it], 
+      alpha: 1,
+      duration: 75,
+      ease: "Linear"
+    }))
+
+    this.add.tweenchain({
+      tweens: tweens,
+      onComplete: () => {
+        this.interactive = true;
+      },
     })
   }
 }
