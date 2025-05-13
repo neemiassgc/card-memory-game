@@ -32,8 +32,8 @@ export class Game extends Scene {
   }
 
   create() {
-    this.createBoard();
     this.createTextDisplay();
+    this.createBoard();
   }
 
   createTextDisplay() {
@@ -41,7 +41,7 @@ export class Game extends Scene {
       color: "#ffff",
       fontSize: "50px"
     });
-    this.textDisplay.setX(this.scale.width / 2 - this.textDisplay.width / 2);
+    this.textDisplay.setX(this.scale.width);
   }
 
   setRemainingTries(value: number) {
@@ -73,7 +73,7 @@ export class Game extends Scene {
 
     for (let i = 0; i < quantityOfCards; i++) {
       const rectangle = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
-      rectangle.setAlpha(0);
+      rectangle.setScale(0, 0)
       rectangles.push(rectangle);
 
       rectangle.setInteractive();
@@ -184,29 +184,38 @@ export class Game extends Scene {
       x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
     })
 
-    this.boardAnimation(rectangles);
+    this.initAnimation(rectangles)
   }
-  boardAnimation(rectangles: Phaser.GameObjects.Rectangle[]) {
+
+  initAnimation(rectangles: Phaser.GameObjects.Rectangle[]) {
     const steps = [
-      0, 8, 16, 24, 32,
-      1, 9, 17, 25, 33,
-      2, 10, 18, 26, 34,
-      3, 11, 19, 27, 35,
-      4, 12, 20, 28, 36,
-      5, 13, 21, 29, 37,
-      6, 14, 22, 30, 38,
-      7, 15, 23, 31, 39
+      [0, 8, 16, 24, 32],
+      [1, 9, 17, 25, 33],
+      [2, 10, 18, 26, 34],
+      [3, 11, 19, 27, 35],
+      [4, 12, 20, 28, 36],
+      [5, 13, 21, 29, 37],
+      [6, 14, 22, 30, 38],
+      [7, 15, 23, 31, 39]
     ];
 
-    const tweens = steps.map(it => ({
-      targets: rectangles[it], 
-      alpha: 1,
-      duration: 75,
-      ease: "Linear"
+    const boardTweens = steps.map(set => ({
+      targets: set.map(it => rectangles[it]), 
+      scaleX: 1,
+      scaleY: 1,
+      duration: 150,
+      ease: "back"
     }))
 
+    const displayTextTween = {
+      targets: this.textDisplay, 
+      x: this.scale.width / 2 - this.textDisplay.width / 2,
+      duration: 500,
+      ease: "Bounce"
+    }
+
     this.add.tweenchain({
-      tweens: tweens,
+      tweens: [...boardTweens, displayTextTween],
       onComplete: () => {
         this.interactive = true;
       },
