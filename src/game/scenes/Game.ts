@@ -3,7 +3,7 @@ import { Scene } from 'phaser';
 interface CardInfo {
   card: Phaser.GameObjects.Image,
   hidingCardTween: Phaser.Tweens.TweenChain,
-  removingCardTween: Phaser.Tweens.Tween
+  removingCardTween: () => void
 }
 
 export class Game extends Scene {
@@ -27,6 +27,8 @@ export class Game extends Scene {
   }
 
   preload() {
+    this.load.spritesheet("burst", "assets/burst.png", { frameWidth: 192, frameHeight: 192, startFrame: 0, endFrame: 39});
+
     for (const key of this.keys)
       this.load.svg(key, `assets/${key}.svg`, {width: this.CARD_SIZE, height: this.CARD_SIZE}) 
   }
@@ -56,8 +58,9 @@ export class Game extends Scene {
     let idle = false;
     let pairOfCards: CardInfo[] = [];
 
-    const cards: Phaser.GameObjects.Image[] = []
+    const cards: Phaser.GameObjects.Image[] = [];
     const rectangles: Phaser.GameObjects.Rectangle[] = [];
+    const burstSprites: Phaser.GameObjects.Sprite[] = [];
 
     for (const key of this.keys) {
       const cardA = this.add.image(0, 0, key);
@@ -72,6 +75,20 @@ export class Game extends Scene {
     Phaser.Actions.Shuffle(cards);
 
     for (let i = 0; i < quantityOfCards; i++) {
+      const sprite = this.add.sprite(0, 0, "burst", 0);
+      sprite.setTintFill(0x496933);
+      sprite.setVisible(false);
+      sprite.anims.create({
+        key: "explosion",
+        frames: sprite.anims.generateFrameNumbers("burst", {
+          start: 0, end: 39
+        }),
+        frameRate: 24,
+        showOnStart: true,
+        hideOnComplete: true,
+      })
+      burstSprites.push(sprite);
+
       const rectangle = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
       rectangle.setScale(0, 0)
       rectangles.push(rectangle);
@@ -110,22 +127,16 @@ export class Game extends Scene {
         ...tweenChain
       })
 
-      const removingCard = this.add.tween({
-        paused: true,
-        targets: cards[i],
-        scaleX: 0,
-        scaleY: 0,
-        duration: 500,
-        ease: "Linear",
-        onComplete: () => {
-          rectangle.off("pointerup");
-          cards[i].off("pointerup");
-          revealingCard.destroy();
-          hidingCard.destroy();
-          rectangle.destroy();
-          cards[i].destroy();
-        }
-      })
+      const removingCard = () => {
+        rectangle.off("pointerup");
+        cards[i].off("pointerup");
+        revealingCard.destroy();
+        hidingCard.destroy();
+        rectangle.destroy();
+        cards[i].destroy();
+
+        burstSprites[i].anims.play("explosion");
+      }
 
       rectangle.on("pointerup", () => {
         if (this.interactive && !idle) {
@@ -149,7 +160,7 @@ export class Game extends Scene {
       at: 1000,
       run: () => {
         if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
-          pairOfCards.forEach(it => it.removingCardTween.play())
+          pairOfCards.forEach(it => it.removingCardTween())
         }
         else {
           pairOfCards.forEach(it => it.hidingCardTween.restart())
@@ -182,6 +193,12 @@ export class Game extends Scene {
       width: quantityOfColumns, height: quantityOfRows,
       cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
       x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
+    })
+
+     Phaser.Actions.GridAlign(burstSprites, {
+      width: quantityOfColumns, height: quantityOfRows,
+      cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
+      x: this.scale.width / 2 - rowLength / 2 - 96 / 2, y: this.scale.height / 2 - columnLength / 2 - 96 / 2,
     })
 
     this.initAnimation(rectangles)
