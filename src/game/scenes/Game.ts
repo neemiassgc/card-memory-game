@@ -10,7 +10,7 @@ export class Game extends Scene {
 
   DEFAULT_COLOR = 0x496933;
   CARD_SIZE = 96;
-  MAX_TRIES = 10;
+  MAX_TRIES = 40;
 
   textDisplay: Phaser.GameObjects.Text;
   interactive = false;
@@ -39,7 +39,7 @@ export class Game extends Scene {
   }
 
   createTextDisplay() {
-    this.textDisplay = this.add.text(this.scale.width / 2, this.CARD_SIZE / 3, `TRIES 00/${this.MAX_TRIES}`, {
+    this.textDisplay = this.add.text(this.scale.width / 2, this.CARD_SIZE / 3, `TRIES 0/${this.MAX_TRIES}`, {
       color: "#ffff",
       fontSize: "50px"
     });
@@ -48,16 +48,16 @@ export class Game extends Scene {
 
   setRemainingTries(value: number) {
     const remainingTries = this.MAX_TRIES - value;
-    this.textDisplay.setText(`TRIES ${(remainingTries <= 9 ? "0" : "") + remainingTries}/${this.MAX_TRIES}`)
+    this.textDisplay.setText(`TRIES ${remainingTries}/${this.MAX_TRIES}`)
   }
       
   createBoard() {
-    const quantityOfCards = 40;
     let plays = 0;
     let tries = this.MAX_TRIES;
     let idle = false;
     let pairOfCards: CardInfo[] = [];
-
+    
+    const quantityOfCards = 40;
     const cards: Phaser.GameObjects.Image[] = [];
     const rectangles: Phaser.GameObjects.Rectangle[] = [];
     const burstSprites: Phaser.GameObjects.Sprite[] = [];
@@ -177,31 +177,26 @@ export class Game extends Scene {
       cardMatching.play()
     });
 
+    this.gridAlign([rectangles, cards, burstSprites], [0, 0, this.CARD_SIZE])
+
+    this.initAnimation(rectangles)
+  }
+
+  gridAlign(gameObjects: Phaser.GameObjects.GameObject[][], offsetSize: number[]) {
     const cellGap = 10;
     const quantityOfColumns = 8;
     const quantityOfRows = 5;
     const rowLength = this.CARD_SIZE * quantityOfColumns + cellGap * quantityOfColumns
     const columnLength = this.CARD_SIZE * quantityOfRows + cellGap * quantityOfRows
-  
-    Phaser.Actions.GridAlign(rectangles, {
-      width: quantityOfColumns, height: quantityOfRows,
-      cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
-      x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
-    })
 
-    Phaser.Actions.GridAlign(cards, {
-      width: quantityOfColumns, height: quantityOfRows,
-      cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
-      x: this.scale.width / 2 - rowLength / 2, y: this.scale.height / 2 - columnLength / 2,
-    })
-
-     Phaser.Actions.GridAlign(burstSprites, {
-      width: quantityOfColumns, height: quantityOfRows,
-      cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
-      x: this.scale.width / 2 - rowLength / 2 - 96 / 2, y: this.scale.height / 2 - columnLength / 2 - 96 / 2,
-    })
-
-    this.initAnimation(rectangles)
+    for (let i = 0; i < gameObjects.length; i++) {
+      Phaser.Actions.GridAlign(gameObjects[i], {
+        width: quantityOfColumns, height: quantityOfRows,
+        cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
+        x: this.scale.width / 2 - rowLength / 2 - offsetSize[i] / 2,
+        y: this.scale.height / 2 - columnLength / 2 - offsetSize[i] / 2,
+      })
+    }
   }
 
   initAnimation(rectangles: Phaser.GameObjects.Rectangle[]) {
