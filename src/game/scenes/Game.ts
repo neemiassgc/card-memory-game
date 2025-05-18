@@ -47,19 +47,18 @@ export class Game extends Scene {
   }
 
   setRemainingTries(value: number) {
-    const remainingTries = this.MAX_TRIES - value;
-    this.textDisplay.setText(`TRIES ${remainingTries}/${this.MAX_TRIES}`)
+    this.textDisplay.setText(`TRIES ${value}/${this.MAX_TRIES}`)
   }
       
   createBoard() {
-    let plays = 0;
-    let tries = this.MAX_TRIES;
+    let plays = 0, tries = 0;
     let idle = false;
     let pairOfCards: CardInfo[] = [];
     
     const quantityOfCards = 40;
     const cards: Phaser.GameObjects.Image[] = [];
-    const rectangles: Phaser.GameObjects.Rectangle[] = [];
+    const cardBacks: Phaser.GameObjects.Rectangle[] = [];
+    const cardFrames: Phaser.GameObjects.Rectangle[] = [];
     const burstSprites: Phaser.GameObjects.Sprite[] = [];
 
     for (const key of this.keys) {
@@ -69,6 +68,8 @@ export class Game extends Scene {
       cardB.setScale(0, 1);
       cardA.setName(key);
       cardB.setName(key);
+      cardA.setDepth(10);
+      cardB.setDepth(10);
       cards.push(cardA, cardB);
     }
 
@@ -89,11 +90,16 @@ export class Game extends Scene {
       })
       burstSprites.push(sprite);
 
-      const rectangle = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
-      rectangle.setScale(0, 0)
-      rectangles.push(rectangle);
+      const cardBack = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      cardBack.setScale(0, 0)
+      cardBacks.push(cardBack);
 
-      rectangle.setInteractive();
+      const cardFrame = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      cardFrame.setScale(0, 1);
+      cardFrames.push(cardFrame);
+
+      cardFrame.setInteractive();
+      cardBack.setInteractive();
       cards[i].setInteractive();
 
       const tween = {
@@ -113,32 +119,32 @@ export class Game extends Scene {
       }
       const revealingCard = this.add.tweenchain({
         tweens: [
-          {...tween, targets: rectangles[i]},
-          {...tween, targets: cards[i], scaleX: 1}
+          {...tween, targets: cardBacks[i]},
+          {...tween, targets: [cards[i], cardFrame], scaleX: 1}
         ],
         ...tweenChain
       })
 
       const hidingCard = this.add.tweenchain({
         tweens: [
-          {...tween, targets: cards[i]},
-          {...tween, targets: rectangles[i], scaleX: 1}
+          {...tween, targets: [cardFrame, cards[i]]},
+          {...tween, targets: cardBacks[i], scaleX: 1}
         ],
         ...tweenChain
       })
 
       const removingCard = () => {
-        rectangle.off("pointerup");
-        cards[i].off("pointerup");
+        cardBack.off("pointerup");
         revealingCard.destroy();
         hidingCard.destroy();
-        rectangle.destroy();
+        cardBack.destroy();
         cards[i].destroy();
+        cardFrame.destroy();
 
         burstSprites[i].anims.play("explosion");
       }
 
-      rectangle.on("pointerup", () => {
+      cardBack.on("pointerup", () => {
         if (this.interactive && !idle) {
           pairOfCards.push({
             card: cards[i],
@@ -180,9 +186,9 @@ export class Game extends Scene {
       cardMatching.play()
     });
 
-    this.gridAlign([rectangles, cards, burstSprites], [0, 0, this.CARD_SIZE])
+    this.gridAlign([cardBacks, cards, cardFrames, burstSprites], [0, 0, 0, this.CARD_SIZE])
 
-    this.initAnimation(rectangles)
+    this.initAnimation(cardBacks);
   }
 
   gridAlign(gameObjects: Phaser.GameObjects.GameObject[][], offsetSize: number[]) {
@@ -202,7 +208,7 @@ export class Game extends Scene {
     }
   }
 
-  initAnimation(rectangles: Phaser.GameObjects.Rectangle[]) {
+  initAnimation(cardBacks: Phaser.GameObjects.Rectangle[]) {
     const steps = [
       [0, 8, 16, 24, 32],
       [1, 9, 17, 25, 33],
@@ -215,7 +221,7 @@ export class Game extends Scene {
     ];
 
     const boardTweens = steps.map(set => ({
-      targets: set.map(it => rectangles[it]), 
+      targets: set.map(it => cardBacks[it]), 
       scaleX: 1,
       scaleY: 1,
       duration: 150,
