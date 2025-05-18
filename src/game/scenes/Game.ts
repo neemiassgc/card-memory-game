@@ -163,8 +163,11 @@ export class Game extends Scene {
           pairOfCards.forEach(it => it.removingCardTween())
         }
         else {
+          if (++tries === this.MAX_TRIES) {
+            this.scene.start("gameOver");
+          }
           pairOfCards.forEach(it => it.hidingCardTween.restart())
-          this.setRemainingTries(--tries);
+          this.setRemainingTries(tries);
         }
         pairOfCards.splice(0, pairOfCards.length);
 
