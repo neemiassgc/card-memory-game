@@ -62,15 +62,13 @@ export class Game extends Scene {
     const burstSprites: Phaser.GameObjects.Sprite[] = [];
 
     for (const key of this.keys) {
-      const cardA = this.add.image(0, 0, key);
-      const cardB = this.add.image(0, 0, key);
-      cardA.setScale(0, 1);
-      cardB.setScale(0, 1);
-      cardA.setName(key);
-      cardB.setName(key);
-      cardA.setDepth(10);
-      cardB.setDepth(10);
-      cards.push(cardA, cardB);
+      for (let i = 0; i < 2; i++) {
+        const card = this.add.image(0, 0, key); 
+        card.setScale(0, 1);
+        card.setName(key);
+        card.setDepth(10)
+        cards.push(card);
+      }
     }
 
     Phaser.Actions.Shuffle(cards);
