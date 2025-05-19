@@ -1,13 +1,16 @@
 import { colors } from "@/tools";
-import { Scene } from "phaser";
+import { Data, Scene } from "phaser";
 
 export class GameOver extends Scene {
+
+  backgroundColorName: string
 
   constructor() {
     super("gameOver")
   }
 
-  create() {
+  create(data: { backgroundColorName: string }) {
+    this.cameras.main.setBackgroundColor(colors[this.backgroundColorName].hex as string);
     const screenWidth = this.scale.width;
     const screenHeight = this.scale.height;
 
@@ -20,7 +23,7 @@ export class GameOver extends Scene {
     text.setY(screenHeight / 2 - text.height / 2 - 100);
 
     const restartText = this.add.text(0, 0, "Click anywhere on the screen to restart", {
-      color: colors["dark-first"].hex as string,
+      color: colors["dark-"+this.backgroundColorName].hex as string,
       fontStyle: "bold",
       fontSize: "30px",
     });

@@ -8,9 +8,10 @@ interface CardInfo {
   removingCardTween: () => void
 }
 
-export class Game extends Scene {
+type Difficulty = "EASY" | "HARD";
+
+export class Gameplay extends Scene {
   CARD_SIZE = 96;
-  MAX_TRIES = 100;
 
   textDisplay: Phaser.GameObjects.Text;
   interactive = false;
@@ -18,6 +19,9 @@ export class Game extends Scene {
   cardFrames: Phaser.GameObjects.Rectangle[];
   burstSprites: Phaser.GameObjects.Sprite[];
   cards: Phaser.GameObjects.Image[];
+  difficulty: Difficulty;
+  maxTries: number;
+  backgroundColorName: string = "first";
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -27,7 +31,12 @@ export class Game extends Scene {
   ]
 
   constructor() {
-      super('Game');
+      super('Gameplay');
+  }
+
+  init(data: { mode: Difficulty }) {
+    this.difficulty = data.mode;
+    this.maxTries = data.mode === "HARD" ? 60 : 20
   }
 
   preload() {
@@ -43,7 +52,7 @@ export class Game extends Scene {
   }
 
   createTextDisplay() {
-    this.textDisplay = this.add.text(this.scale.width / 2, this.CARD_SIZE / 3, `TRIES 0/${this.MAX_TRIES}`, {
+    this.textDisplay = this.add.text(this.scale.width / 2, this.CARD_SIZE / 3, `TRIES 0/${this.maxTries}`, {
       color: "#ffff",
       fontSize: "50px"
     });
@@ -51,14 +60,14 @@ export class Game extends Scene {
   }
 
   setRemainingTries(value: number) {
-    this.textDisplay.setText(`TRIES ${value}/${this.MAX_TRIES}`)
+    this.textDisplay.setText(`TRIES ${value}/${this.maxTries}`)
   }
       
   createBoard() {
     let plays = 0, tries = 0, matchedPairs = 0;
     let idle = false;
     let pairOfCards: CardInfo[] = [];
-    const quantityOfCards = 40;
+    const quantityOfCards = this.difficulty === "EASY" ? 20 : 40;
     const darkColor = colors["dark-first"].number as number;
 
     this.cards = [];
@@ -66,11 +75,11 @@ export class Game extends Scene {
     this.cardFrames = [];
     this.burstSprites = [];
 
-    for (const key of this.keys) {
-      for (let i = 0; i < 2; i++) {
-        const card = this.add.image(0, 0, key); 
+    for (let i = 0; i < quantityOfCards / 2; i++) {
+      for (let j = 0; j < 2; j++) {
+        const card = this.add.image(0, 0, this.keys[i]); 
         card.setScale(0, 1);
-        card.setName(key);
+        card.setName(this.keys[i]);
         card.setDepth(10)
         this.cards.push(card);
       }
@@ -108,7 +117,7 @@ export class Game extends Scene {
       const tween = {
         scaleX: 0,
         duration: 250,
-        ease: "Linear",
+        ease: "cubic",
       }
       const tweenChain = {
         paused: true,
@@ -165,19 +174,21 @@ export class Game extends Scene {
       });
     }
 
+    const scene = this;
+
     const cardMatching = this.add.timeline({
       at: 1000,
-      run: () => {
+      run: function() {
         if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
           pairOfCards.forEach(it => it.removingCardTween());
-          this.setBackgroundColorByMatchedPairs(++matchedPairs);
+          scene.setBackgroundColorByMatchedPairs(++matchedPairs);
         }
         else {
-          if (++tries === this.MAX_TRIES) {
-            this.scene.start("gameOver");
+          if (++tries === scene.maxTries) {
+            scene.scene.start("gameOver", { backgroundColorName: scene.backgroundColorName });
           }
           pairOfCards.forEach(it => it.hidingCardTween.restart())
-          this.setRemainingTries(tries);
+          scene.setRemainingTries(tries);
         }
         pairOfCards.splice(0, pairOfCards.length);
 
@@ -197,8 +208,8 @@ export class Game extends Scene {
 
   gridAlign(gameObjects: Phaser.GameObjects.GameObject[][], offsetSize: number[]) {
     const cellGap = 10;
-    const quantityOfColumns = 8;
-    const quantityOfRows = 5;
+    const quantityOfColumns = this.difficulty === "EASY" ? 5 : 8;
+    const quantityOfRows = this.difficulty === "EASY" ? 4 : 5;
     const rowLength = this.CARD_SIZE * quantityOfColumns + cellGap * quantityOfColumns
     const columnLength = this.CARD_SIZE * quantityOfRows + cellGap * quantityOfRows
 
@@ -213,7 +224,8 @@ export class Game extends Scene {
   }
 
   initAnimation() {
-    const steps = [
+    const steps = this.difficulty === "HARD" ?
+    [
       [0, 8, 16, 24, 32],
       [1, 9, 17, 25, 33],
       [2, 10, 18, 26, 34],
@@ -222,6 +234,13 @@ export class Game extends Scene {
       [5, 13, 21, 29, 37],
       [6, 14, 22, 30, 38],
       [7, 15, 23, 31, 39]
+    ] :
+    [
+      [0, 5, 10, 15],
+      [1, 6, 11, 16],
+      [2, 7, 12, 17],
+      [3, 8, 13, 18],
+      [4, 9, 14, 19]
     ];
 
     const boardTweens = steps.map(set => ({
@@ -248,25 +267,29 @@ export class Game extends Scene {
   }
 
   setBackgroundColorByMatchedPairs(matchedPairs: number) {
-    const setColor = (color: string, darkColor: number) => {
-      this.cameras.main.setBackgroundColor(color);
-      this.cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColor));
-      this.cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColor));
-      this.burstSprites.forEach(cardBack => cardBack.setTintFill(darkColor));
-      EventBus.emit("change-background-color", color);
+    const setColor = (colorName: string) => {
+      const darkColorName = `dark-${colorName}`;
+      const darkColorNumber = colors[darkColorName].number as number;
+      const colorHex = colors[colorName].hex as string
+      this.cameras.main.setBackgroundColor(colorHex);
+      this.cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
+      this.cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
+      this.burstSprites.forEach(cardBack => cardBack.setTintFill(darkColorNumber));
+      this.backgroundColorName = colorName;
+      EventBus.emit("change-background-color", colorHex);
     }
 
     switch(matchedPairs) {
-      case 5: {
-        setColor(colors["second"].hex as string, colors["dark-second"].number as number);
+      case this.difficulty === "EASY" ? 3 : 5: {
+        setColor("second");
         break;
       }
-      case 10: {
-        setColor(colors["third"].hex as string, colors["dark-third"].number as number);
+      case this.difficulty === "EASY" ? 6 : 10: {
+        setColor("third");
         break;
       }
       case 15: {
-        setColor(colors["fourth"].hex as string, colors["dark-fourth"].number as number);
+        setColor("fourth");
         break;
       }
     }

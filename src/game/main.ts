@@ -1,4 +1,4 @@
-import { Game as MainGame } from './scenes/Game';
+import { Gameplay } from './scenes/Gameplay';
 import { AUTO, Game, Types } from "phaser";
 import { Menu } from './scenes/Menu';
 import { GameOver } from './scenes/GameOver';
@@ -14,8 +14,8 @@ const config: Types.Core.GameConfig = {
   backgroundColor: colors["first"].hex as string,
   scene: [
     Menu,
+    Gameplay,
     GameOver,
-    MainGame,
   ]
 };
 
