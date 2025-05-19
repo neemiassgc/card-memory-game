@@ -1,4 +1,6 @@
 import { Scene } from 'phaser';
+import { colors } from '../../tools';
+import { EventBus } from '../EventBus';
 
 interface CardInfo {
   card: Phaser.GameObjects.Image,
@@ -7,13 +9,15 @@ interface CardInfo {
 }
 
 export class Game extends Scene {
-
-  DEFAULT_COLOR = 0x496933;
   CARD_SIZE = 96;
-  MAX_TRIES = 40;
+  MAX_TRIES = 100;
 
   textDisplay: Phaser.GameObjects.Text;
   interactive = false;
+  cardBacks: Phaser.GameObjects.Rectangle[];
+  cardFrames: Phaser.GameObjects.Rectangle[];
+  burstSprites: Phaser.GameObjects.Sprite[];
+  cards: Phaser.GameObjects.Image[];
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -51,15 +55,16 @@ export class Game extends Scene {
   }
       
   createBoard() {
-    let plays = 0, tries = 0;
+    let plays = 0, tries = 0, matchedPairs = 0;
     let idle = false;
     let pairOfCards: CardInfo[] = [];
-    
     const quantityOfCards = 40;
-    const cards: Phaser.GameObjects.Image[] = [];
-    const cardBacks: Phaser.GameObjects.Rectangle[] = [];
-    const cardFrames: Phaser.GameObjects.Rectangle[] = [];
-    const burstSprites: Phaser.GameObjects.Sprite[] = [];
+    const darkColor = colors["dark-first"].number as number;
+
+    this.cards = [];
+    this.cardBacks = [];
+    this.cardFrames = [];
+    this.burstSprites = [];
 
     for (const key of this.keys) {
       for (let i = 0; i < 2; i++) {
@@ -67,15 +72,15 @@ export class Game extends Scene {
         card.setScale(0, 1);
         card.setName(key);
         card.setDepth(10)
-        cards.push(card);
+        this.cards.push(card);
       }
     }
 
-    Phaser.Actions.Shuffle(cards);
+    Phaser.Actions.Shuffle(this.cards);
 
     for (let i = 0; i < quantityOfCards; i++) {
       const sprite = this.add.sprite(0, 0, "burst", 0);
-      sprite.setTintFill(0x496933);
+      sprite.setTintFill(darkColor);
       sprite.setVisible(false);
       sprite.anims.create({
         key: "explosion",
@@ -86,19 +91,19 @@ export class Game extends Scene {
         showOnStart: true,
         hideOnComplete: true,
       })
-      burstSprites.push(sprite);
+      this.burstSprites.push(sprite);
 
-      const cardBack = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      const cardBack = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardBack.setScale(0, 0)
-      cardBacks.push(cardBack);
+      this.cardBacks.push(cardBack);
 
-      const cardFrame = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, this.DEFAULT_COLOR);
+      const cardFrame = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardFrame.setScale(0, 1);
-      cardFrames.push(cardFrame);
+      this.cardFrames.push(cardFrame);
 
       cardFrame.setInteractive();
       cardBack.setInteractive();
-      cards[i].setInteractive();
+      this.cards[i].setInteractive();
 
       const tween = {
         scaleX: 0,
@@ -117,16 +122,16 @@ export class Game extends Scene {
       }
       const revealingCard = this.add.tweenchain({
         tweens: [
-          {...tween, targets: cardBacks[i]},
-          {...tween, targets: [cards[i], cardFrame], scaleX: 1}
+          {...tween, targets: this.cardBacks[i]},
+          {...tween, targets: [this.cards[i], cardFrame], scaleX: 1}
         ],
         ...tweenChain
       })
 
       const hidingCard = this.add.tweenchain({
         tweens: [
-          {...tween, targets: [cardFrame, cards[i]]},
-          {...tween, targets: cardBacks[i], scaleX: 1}
+          {...tween, targets: [cardFrame, this.cards[i]]},
+          {...tween, targets: this.cardBacks[i], scaleX: 1}
         ],
         ...tweenChain
       })
@@ -136,16 +141,16 @@ export class Game extends Scene {
         revealingCard.destroy();
         hidingCard.destroy();
         cardBack.destroy();
-        cards[i].destroy();
+        this.cards[i].destroy();
         cardFrame.destroy();
 
-        burstSprites[i].anims.play("explosion");
+        this.burstSprites[i].anims.play("explosion");
       }
 
       cardBack.on("pointerup", () => {
         if (this.interactive && !idle) {
           pairOfCards.push({
-            card: cards[i],
+            card: this.cards[i],
             hidingCardTween: hidingCard,
             removingCardTween: removingCard
           })
@@ -164,7 +169,8 @@ export class Game extends Scene {
       at: 1000,
       run: () => {
         if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
-          pairOfCards.forEach(it => it.removingCardTween())
+          pairOfCards.forEach(it => it.removingCardTween());
+          this.setBackgroundColorByMatchedPairs(++matchedPairs);
         }
         else {
           if (++tries === this.MAX_TRIES) {
@@ -184,9 +190,9 @@ export class Game extends Scene {
       cardMatching.play()
     });
 
-    this.gridAlign([cardBacks, cards, cardFrames, burstSprites], [0, 0, 0, this.CARD_SIZE])
+    this.gridAlign([this.cardBacks, this.cards, this.cardFrames, this.burstSprites], [0, 0, 0, this.CARD_SIZE])
 
-    this.initAnimation(cardBacks);
+    this.initAnimation();
   }
 
   gridAlign(gameObjects: Phaser.GameObjects.GameObject[][], offsetSize: number[]) {
@@ -206,7 +212,7 @@ export class Game extends Scene {
     }
   }
 
-  initAnimation(cardBacks: Phaser.GameObjects.Rectangle[]) {
+  initAnimation() {
     const steps = [
       [0, 8, 16, 24, 32],
       [1, 9, 17, 25, 33],
@@ -219,7 +225,7 @@ export class Game extends Scene {
     ];
 
     const boardTweens = steps.map(set => ({
-      targets: set.map(it => cardBacks[it]), 
+      targets: set.map(it => this.cardBacks[it]), 
       scaleX: 1,
       scaleY: 1,
       duration: 150,
@@ -239,5 +245,30 @@ export class Game extends Scene {
         this.interactive = true;
       },
     })
+  }
+
+  setBackgroundColorByMatchedPairs(matchedPairs: number) {
+    const setColor = (color: string, darkColor: number) => {
+      this.cameras.main.setBackgroundColor(color);
+      this.cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColor));
+      this.cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColor));
+      this.burstSprites.forEach(cardBack => cardBack.setTintFill(darkColor));
+      EventBus.emit("change-background-color", color);
+    }
+
+    switch(matchedPairs) {
+      case 5: {
+        setColor(colors["second"].hex as string, colors["dark-second"].number as number);
+        break;
+      }
+      case 10: {
+        setColor(colors["third"].hex as string, colors["dark-third"].number as number);
+        break;
+      }
+      case 15: {
+        setColor(colors["fourth"].hex as string, colors["dark-fourth"].number as number);
+        break;
+      }
+    }
   }
 }

@@ -8,7 +8,11 @@ export interface IRefPhaserGame
     scene: Phaser.Scene | null;
 }
 
-export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame({}, ref)
+interface IProps {
+    setBackgroundColor: (color: string) => void
+}
+
+export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame({ setBackgroundColor }, ref)
 {
     const game = useRef<Phaser.Game | null>(null!);
 
@@ -44,6 +48,12 @@ export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame({}, ref
 
     useEffect(() =>
     {
+        EventBus.on("change-background-color", (color: string) => {
+            setBackgroundColor(color);
+        })
+        return () => {
+            EventBus.off("change-background-color");
+        }
     }, [ref]);
 
     return (

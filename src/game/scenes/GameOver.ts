@@ -1,3 +1,4 @@
+import { colors } from "@/tools";
 import { Scene } from "phaser";
 
 export class GameOver extends Scene {
@@ -19,7 +20,7 @@ export class GameOver extends Scene {
     text.setY(screenHeight / 2 - text.height / 2 - 100);
 
     const restartText = this.add.text(0, 0, "Click anywhere on the screen to restart", {
-      color: "#496933",
+      color: colors["dark-first"].hex as string,
       fontStyle: "bold",
       fontSize: "30px",
     });
