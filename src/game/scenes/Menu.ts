@@ -11,8 +11,9 @@ export class Menu extends Scene {
     const screenWidth = this.scale.width, screenHeight = this.scale.height;
     const textProps = {
       color: colors["dark-first"].hex as string,
-      fontSize: "80px",
-      stroke: "#ffff",
+      fontSize: 78,
+      stroke: "#000000",
+      strokeThickness: 2
     }
   
     const singlePlayerOption = this.add.text(0, 0, "SINGLE PLAYER", textProps);
