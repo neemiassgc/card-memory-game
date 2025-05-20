@@ -1,11 +1,11 @@
 export const colors: {[prop: string]: {[prop: string]: number | string}} = {
   "first": {
-    number: 0x00a63e,
-    hex: "#00a63e"
+    number: 0x009966,
+    hex: "#009966"
   },
   "dark-first": {
-    number: 0x016630,
-    hex: "#016630"
+    number: 0x006045,
+    hex: "#006045"
   },
   "second": {
     number: 0xffba00,
