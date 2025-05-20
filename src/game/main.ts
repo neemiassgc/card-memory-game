@@ -1,7 +1,7 @@
 import { Gameplay } from './scenes/Gameplay';
 import { AUTO, Game, Types } from "phaser";
 import { Menu } from './scenes/Menu';
-import { GameOver } from './scenes/GameOver';
+import { GameEnd } from './scenes/GameEnd';
 import { colors } from '../tools';
 
 // Find out more information about the Game Config at:
@@ -15,7 +15,7 @@ const config: Types.Core.GameConfig = {
   scene: [
     Menu,
     Gameplay,
-    GameOver,
+    GameEnd,
   ]
 };
 

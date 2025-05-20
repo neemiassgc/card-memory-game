@@ -21,7 +21,7 @@ export class Gameplay extends Scene {
   cards: Phaser.GameObjects.Image[];
   difficulty: Difficulty;
   maxTries: number;
-  backgroundColorName: string = "first";
+  backgroundColorName = "first";
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -36,7 +36,7 @@ export class Gameplay extends Scene {
 
   init(data: { mode: Difficulty }) {
     this.difficulty = data.mode;
-    this.maxTries = data.mode === "HARD" ? 60 : 20
+    this.maxTries = data.mode === "HARD" ? 60 : 20;
   }
 
   preload() {
@@ -117,7 +117,7 @@ export class Gameplay extends Scene {
       const tween = {
         scaleX: 0,
         duration: 250,
-        ease: "cubic",
+        ease: "linear",
       }
       const tweenChain = {
         paused: true,
@@ -174,21 +174,22 @@ export class Gameplay extends Scene {
       });
     }
 
-    const scene = this;
-
     const cardMatching = this.add.timeline({
       at: 1000,
-      run: function() {
+      run: () => {
         if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
           pairOfCards.forEach(it => it.removingCardTween());
-          scene.setBackgroundColorByMatchedPairs(++matchedPairs);
+          this.setBackgroundColorByMatchedPairs(++matchedPairs);
+          if (matchedPairs === quantityOfCards / 2) {
+            this.scene.start("GameEnd", { backgroundColorName: this.backgroundColorName, winner: true });
+          }
         }
         else {
-          if (++tries === scene.maxTries) {
-            scene.scene.start("gameOver", { backgroundColorName: scene.backgroundColorName });
+          if (++tries === this.maxTries) {
+            this.scene.start("GameEnd", { backgroundColorName: this.backgroundColorName, winner: false });
           }
           pairOfCards.forEach(it => it.hidingCardTween.restart())
-          scene.setRemainingTries(tries);
+          this.setRemainingTries(tries);
         }
         pairOfCards.splice(0, pairOfCards.length);
 
@@ -197,9 +198,7 @@ export class Gameplay extends Scene {
       }
     })
 
-    this.events.on("wait", () => {
-      cardMatching.play()
-    });
+    this.events.on("wait", () => cardMatching.play());
 
     this.gridAlign([this.cardBacks, this.cards, this.cardFrames, this.burstSprites], [0, 0, 0, this.CARD_SIZE])
 
