@@ -34,19 +34,10 @@ export class Gameplay extends Scene {
       super('Gameplay');
   }
 
-  init(data: { mode: Difficulty }) {
+  create(data: { mode: Difficulty }) {
     this.difficulty = data.mode;
     this.maxTries = data.mode === "HARD" ? 60 : 20;
-  }
 
-  preload() {
-    this.load.spritesheet("burst", "assets/burst.png", { frameWidth: 192, frameHeight: 192, startFrame: 0, endFrame: 39});
-
-    for (const key of this.keys)
-      this.load.svg(key, `assets/${key}.svg`, {width: this.CARD_SIZE, height: this.CARD_SIZE}) 
-  }
-
-  create() {
     this.createTextDisplay();
     this.createBoard();
   }

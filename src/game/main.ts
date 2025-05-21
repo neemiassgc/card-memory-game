@@ -3,6 +3,7 @@ import { AUTO, Game, Types } from "phaser";
 import { Menu } from './scenes/Menu';
 import { GameEnd } from './scenes/GameEnd';
 import { colors } from '../tools';
+import { Boot } from './scenes/Boot';
 
 // Find out more information about the Game Config at:
 // https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -13,6 +14,7 @@ const config: Types.Core.GameConfig = {
   parent: 'game-container',
   backgroundColor: colors["first"].hex as string,
   scene: [
+    Boot,
     Menu,
     Gameplay,
     GameEnd,
