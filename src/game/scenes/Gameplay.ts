@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { colors } from '../../tools';
 import { EventBus } from '../EventBus';
+import { BurstPool } from '../BurstPool';
 
 interface CardInfo {
   card: Phaser.GameObjects.Image,
@@ -17,11 +18,11 @@ export class Gameplay extends Scene {
   interactive = false;
   cardBacks: Phaser.GameObjects.Rectangle[];
   cardFrames: Phaser.GameObjects.Rectangle[];
-  burstSprites: Phaser.GameObjects.Sprite[];
   cards: Phaser.GameObjects.Image[];
   difficulty: Difficulty;
   maxTries: number;
   backgroundColorName = "first";
+  burstPool: BurstPool;
 
   keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -35,6 +36,7 @@ export class Gameplay extends Scene {
   }
 
   create(data: { mode: Difficulty }) {
+    this.burstPool = new BurstPool(2, this, colors["dark-first"].number as number)
     this.difficulty = data.mode;
     this.maxTries = data.mode === "HARD" ? 60 : 20;
 
@@ -64,7 +66,6 @@ export class Gameplay extends Scene {
     this.cards = [];
     this.cardBacks = [];
     this.cardFrames = [];
-    this.burstSprites = [];
 
     for (let i = 0; i < quantityOfCards / 2; i++) {
       for (let j = 0; j < 2; j++) {
@@ -79,20 +80,6 @@ export class Gameplay extends Scene {
     Phaser.Actions.Shuffle(this.cards);
 
     for (let i = 0; i < quantityOfCards; i++) {
-      const sprite = this.add.sprite(0, 0, "burst", 0);
-      sprite.setTintFill(darkColor);
-      sprite.setVisible(false);
-      sprite.anims.create({
-        key: "explosion",
-        frames: sprite.anims.generateFrameNumbers("burst", {
-          start: 0, end: 39
-        }),
-        frameRate: 24,
-        showOnStart: true,
-        hideOnComplete: true,
-      })
-      this.burstSprites.push(sprite);
-
       const cardBack = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardBack.setScale(0, 0)
       this.cardBacks.push(cardBack);
@@ -144,7 +131,7 @@ export class Gameplay extends Scene {
         this.cards[i].destroy();
         cardFrame.destroy();
 
-        this.burstSprites[i].anims.play("explosion");
+        this.burstPool.positionAndPLay(this.cards[i].x, this.cards[i].y);
       }
 
       cardBack.on("pointerup", () => {
@@ -191,12 +178,12 @@ export class Gameplay extends Scene {
 
     this.events.on("wait", () => cardMatching.play());
 
-    this.gridAlign([this.cardBacks, this.cards, this.cardFrames, this.burstSprites], [0, 0, 0, this.CARD_SIZE])
+    this.gridAlign([this.cardBacks, this.cards, this.cardFrames])
 
     this.initAnimation();
   }
 
-  gridAlign(gameObjects: Phaser.GameObjects.GameObject[][], offsetSize: number[]) {
+  gridAlign(gameObjects: Phaser.GameObjects.GameObject[][]) {
     const cellGap = 10;
     const quantityOfColumns = this.difficulty === "EASY" ? 5 : 8;
     const quantityOfRows = this.difficulty === "EASY" ? 4 : 5;
@@ -207,8 +194,8 @@ export class Gameplay extends Scene {
       Phaser.Actions.GridAlign(gameObjects[i], {
         width: quantityOfColumns, height: quantityOfRows,
         cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
-        x: this.scale.width / 2 - rowLength / 2 - offsetSize[i] / 2,
-        y: this.scale.height / 2 - columnLength / 2 - offsetSize[i] / 2,
+        x: this.scale.width / 2 - rowLength / 2,
+        y: this.scale.height / 2 - columnLength / 2,
       })
     }
   }
@@ -264,7 +251,7 @@ export class Gameplay extends Scene {
       this.cameras.main.setBackgroundColor(colorHex);
       this.cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
       this.cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
-      this.burstSprites.forEach(cardBack => cardBack.setTintFill(darkColorNumber));
+      this.burstPool.tintAll(darkColorNumber);
       this.backgroundColorName = colorName;
       EventBus.emit("change-background-color", colorHex);
     }
