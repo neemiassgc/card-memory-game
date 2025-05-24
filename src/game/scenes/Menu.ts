@@ -83,7 +83,7 @@ export class Menu extends Scene {
         paused: false,
         targets: [hardOption, easyOption],
         onComplete: () => {
-          this.scene.start("Gameplay", { mode: difficulty })
+          this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: difficulty })
         }
       })
     }
