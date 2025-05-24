@@ -176,7 +176,7 @@ export class GameDynamic {
     }
   }
 
-  initAnimation(tweenObject: any) {
+  initAnimation(tweenObject?: any) {
     const steps = this.#gridSize === "lg" ?
     [
       [0, 8, 16, 24, 32],
@@ -196,16 +196,19 @@ export class GameDynamic {
       [4, 9, 14, 19]
     ];
 
-    const boardTweens = steps.map(set => ({
+    const tweens = steps.map(set => ({
       targets: set.map(it => this.#cardBacks[it]), 
       scaleX: 1,
       scaleY: 1,
       duration: 150,
       ease: "back"
     }))
+
+    if (tweenObject)
+      tweens.push(tweenObject);
     
     this.#scene.add.tweenchain({
-      tweens: [...boardTweens, tweenObject],
+      tweens: [...tweens],
       onComplete: () => {
         this.#interactive = true;
       },
