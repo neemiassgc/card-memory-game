@@ -4,12 +4,19 @@ import { EventBus } from "../EventBus";
 
 export class Menu extends Scene {
 
+  singlePlayerOption: Phaser.GameObjects.Text;
+  multiplayerOption: Phaser.GameObjects.Text;
+  screenWidth: number;
+  screenHeight: number;
+
   constructor() {
     super("Menu");
   }
 
   create() {
-    const screenWidth = this.scale.width, screenHeight = this.scale.height;
+    this.screenWidth = this.scale.width;
+    this.screenHeight = this.scale.height;
+
     const textProps = {
       color: colors["dark-first"].hex as string,
       fontSize: 78,
@@ -17,36 +24,65 @@ export class Menu extends Scene {
       strokeThickness: 2
     }
   
-    const singlePlayerOption = this.add.text(0, 0, "SINGLE PLAYER", textProps);
-    singlePlayerOption.setX(screenWidth / 2 - singlePlayerOption.width / 2);
-    singlePlayerOption.setY(screenHeight);
+    this.singlePlayerOption = this.add.text(0, 0, "SINGLE PLAYER", textProps);
+    this.singlePlayerOption.setX(this.screenWidth / 2 - this.singlePlayerOption.width / 2);
+    this.singlePlayerOption.setY(this.screenHeight);
     
-    const multiplayerOption = this.add.text(0, 0, "MULTIPLAYER ONLINE", textProps);
-    multiplayerOption.setX(screenWidth / 2 - multiplayerOption.width / 2);
-    multiplayerOption.setY(screenHeight);
+    this.multiplayerOption = this.add.text(0, 0, "MULTIPLAYER ONLINE", textProps);
+    this.multiplayerOption.setX(this.screenWidth / 2 - this.multiplayerOption.width / 2);
+    this.multiplayerOption.setY(this.screenHeight);
 
-    const hardOption = this.add.text(0, 0, "HARD", textProps);
-    hardOption.setX(screenWidth / 2 - hardOption.width / 2);
-    hardOption.setY(screenHeight);
+    this.makeInteractiveAndColorful([this.multiplayerOption, this.singlePlayerOption]);
+    this.initAnimation();
 
-    const easyOption = this.add.text(0, 0, "EASY", textProps);
-    easyOption.setX(screenWidth / 2 - easyOption.width / 2);
-    easyOption.setY(screenHeight);
-
-    for (const gameObject of this.children.getAll() as Phaser.GameObjects.Text[]) {
-      gameObject.setInteractive();
-      
-      gameObject.on("pointerover", () => {
-        gameObject.setColor("#ffff");
+    this.singlePlayerOption.on("pointerup", () => {
+      this.add.tween({
+        y: this.scale.height,
+        duration: 500,
+        ease: "back",
+        delay: 100,
+        paused: false,
+        targets: [this.singlePlayerOption, this.multiplayerOption],
+        onComplete: this.handleSinglePlayer.bind(this, textProps)
       })
+    })
 
-      gameObject.on("pointerout", () => {
-        gameObject.setColor(textProps.color);
-      })
+    EventBus.emit("change-background-color", colors["first"].hex as string);
+  }
+
+  initAnimation() {
+    const tween = {
+      paused: false,
+      y: this.scale.height,
+      duration: 500,
+      ease: "back",
+      delay: 100,
     }
 
+    this.add.tween({
+      ...tween,
+      targets: this.singlePlayerOption,
+      y: this.screenHeight / 2 - this.singlePlayerOption.height / 2 - 100
+    })  
+        
+    this.add.tween({
+      ...tween,
+      targets: this.multiplayerOption,
+      y: this.screenHeight / 2 - this.multiplayerOption.height / 2 - 30
+    })
+  }
+
+  handleSinglePlayer(textProps: any) {
+    const hardOption = this.add.text(0, 0, "HARD", textProps);
+    hardOption.setX(this.screenWidth / 2 - hardOption.width / 2);
+    hardOption.setY(this.screenHeight);
+
+    const easyOption = this.add.text(0, 0, "EASY", textProps);
+    easyOption.setX(this.screenWidth / 2 - easyOption.width / 2);
+    easyOption.setY(this.screenHeight);
+    
     const tween = {
-      paused: true,
+      paused: false,
       y: this.scale.height,
       duration: 500,
       ease: "back",
@@ -66,45 +102,35 @@ export class Menu extends Scene {
       }),
     ]
 
-    singlePlayerOption.on("pointerup", () => {
-      this.add.tween({
-        ...tween,
-        paused: false,
-        targets: [singlePlayerOption, multiplayerOption],
-        onComplete: () => {
-          revealDifficultyOptions.forEach(it => it.play());
-        }
-      })
-    })
+    revealDifficultyOptions.forEach(it => it.play());
 
-    const startGame = (difficulty: string) => {
+    const startGame = (onComplete: () => void) => {
       this.add.tween({
         ...tween,
-        paused: false,
         targets: [hardOption, easyOption],
-        onComplete: () => {
-          this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: difficulty })
-        }
+        onComplete,
       })
     }
 
-    hardOption.on("pointerup", () => startGame("HARD"));
-    easyOption.on("pointerup", () => startGame("EASY"));
+    this.makeInteractiveAndColorful([easyOption, hardOption]);
 
-    this.add.tween({
-      ...tween,
-      paused: false,
-      targets: singlePlayerOption,
-      y: screenHeight / 2 - singlePlayerOption.height / 2 - 100
-    })  
-        
-    this.add.tween({
-      ...tween,
-      paused: false,
-      targets: multiplayerOption,
-      y: screenHeight / 2 - multiplayerOption.height / 2 - 30
-    })
+    hardOption.on("pointerup", () => {
+      startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "HARD" }))});
+    easyOption.on("pointerup", () =>
+      startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "EASY" })));
+  }
 
-    EventBus.emit("change-background-color", colors["first"].hex as string);
+  makeInteractiveAndColorful(gameObjects: Phaser.GameObjects.Text[]) {
+    for (const gameObject of gameObjects) {
+      gameObject.setInteractive();
+      
+      gameObject.on("pointerover", () => {
+        gameObject.setColor("#ffff");
+      })
+
+      gameObject.on("pointerout", () => {
+        gameObject.setColor(colors["dark-first"].hex as string);
+      })
+    }
   }
 }
