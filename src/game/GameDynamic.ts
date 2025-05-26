@@ -140,6 +140,7 @@ export class GameDynamic {
           if (matchedPairs === quantityOfCards / 2) {
             this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
           }
+          this.onMatched();
         }
         else {
           this.onFailure();
@@ -158,6 +159,8 @@ export class GameDynamic {
   }
 
   onFailure() {}
+
+  onMatched() {}
 
   #gridAlign(gameObjects: Phaser.GameObjects.GameObject[][]) {
     const cellGap = 10;
