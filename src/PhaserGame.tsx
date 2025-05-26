@@ -9,10 +9,14 @@ export interface IRefPhaserGame
 }
 
 interface IProps {
-    setBackgroundColor: (color: string) => void
+    setBackgroundColor: (color: string) => void,
+    openModal: () => void,
 }
 
-export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame({ setBackgroundColor }, ref)
+export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame({
+    setBackgroundColor,
+    openModal
+}, ref)
 {
     const game = useRef<Phaser.Game | null>(null!);
 
@@ -51,8 +55,10 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame
         EventBus.on("change-background-color", (color: string) => {
             setBackgroundColor(color);
         })
+        EventBus.on("open-modal", () => openModal());
         return () => {
             EventBus.off("change-background-color");
+            EventBus.off("open-modal");
         }
     }, [ref]);
 
