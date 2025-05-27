@@ -20,33 +20,31 @@ export class Loading {
     }
 
     dots[1].setScale(2, 2);
-  
-    this.#scene.add.tween({
-      targets: dots[0],
+
+    const tweenConfig = {
       duration: 500,
       ease: "linear",
-      x: dots[0].x - 40,
       yoyo: true,
       loop: -1,
+    }
+  
+    this.#scene.add.tween({
+      ...tweenConfig,
+      targets: dots[0],
+      x: dots[0].x - 40,
     });
 
     this.#scene.add.tween({
+      ...tweenConfig,
       targets: dots[1],
-      duration: 500,
-      ease: "linear",
       scaleX: 1,
       scaleY: 1,
-      yoyo: true,
-      loop: -1
     });
 
     this.#scene.add.tween({
+      ...tweenConfig,
       targets: dots[2],
-      duration: 500,
-      ease: "linear",
       x: dots[2].x + 40,
-      yoyo: true,
-      loop: -1
     })
   }
 }
