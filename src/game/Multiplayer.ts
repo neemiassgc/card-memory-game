@@ -1,20 +1,23 @@
 import { colors } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 
+type TPlayer = "Player1" | "Player2";
+
 export class Multiplayer extends GameDynamic {
 
   #scene;
-  #score: Phaser.GameObjects.Text;
+  #scoreDisplay: Phaser.GameObjects.Text;
   #player1: Phaser.GameObjects.Text;
   #player2: Phaser.GameObjects.Text;
   #timeBarPlaceholder: Phaser.GameObjects.Rectangle;
   #timeBar: Phaser.GameObjects.Rectangle;
-  #pairOfPlayers = [0, 0];
+  #score = [0, 0];
   #screenW;
   #screenH;
+  #currentTurn: TPlayer = "Player2";
 
   constructor(scene: Phaser.Scene) {
-    super(scene, "lg");
+    super(scene, "sm");
     this.#scene = scene;
     this.#screenW = this.#scene.scale.width;
     this.#screenH = this.#scene.scale.height;
@@ -27,10 +30,10 @@ export class Multiplayer extends GameDynamic {
   #createTextDisplay() {
     this.#player1 = this.#scene.add.text(0, this.#screenH, "Thomas", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
 
-    this.#score = this.#scene.add.text(0, this.#screenH, "0 | 0", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
-    this.#score.setX(this.#screenW / 2 - this.#score.width / 2 );
+    this.#scoreDisplay = this.#scene.add.text(0, this.#screenH, "0 | 0", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
+    this.#scoreDisplay.setX(this.#screenW / 2 - this.#scoreDisplay.width / 2 );
     
-    this.#player2 = this.#scene.add.text(0, this.#screenH, "Richard", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
+    this.#player2 = this.#scene.add.text(0, this.#screenH, ">  Richard", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
     this.#player2.setX(this.#screenW - this.#player2.width);
   }
 
@@ -41,24 +44,33 @@ export class Multiplayer extends GameDynamic {
   }
 
   setBackgroundColorByMatchedPairs(matchedPairs: number) {
-    // switch(matchedPairs) {
-    //   case this.#difficulty === "EASY" ? 3 : 5: {
-    //     super.setColor("second");
-    //     break;
-    //   }
-    //   case this.#difficulty === "EASY" ? 6 : 10: {
-    //     super.setColor("third");
-    //     break;
-    //   }
-    //   case 15: {
-    //     super.setColor("fourth");
-    //     break;
-    //   }
-    // }
+    switch(matchedPairs) {
+      case 5: {
+        super.setColor("second");
+        break;
+      }
+      case 10: {
+        super.setColor("third");
+        break;
+      }
+      case 15: {
+        super.setColor("fourth");
+        break;
+      }
+    }
   }
 
   onFailure() {
-    
+    this.toggleCurrentTurn();
+  }
+
+  onMatched() {
+    if (this.#currentTurn === "Player1") {
+      this.#score[0]++;
+    }
+    else this.#score[1]++;
+
+    this.#scoreDisplay.setText(`${this.#score[0]} | ${this.#score[1]}`);
   }
 
   #initAnimation() {
@@ -67,7 +79,7 @@ export class Multiplayer extends GameDynamic {
       y: number,
       duration: number,
       ease: string
-    }[] = [this.#player1, this.#player2, this.#score].map(it => ({
+    }[] = [this.#player1, this.#player2, this.#scoreDisplay].map(it => ({
       targets: it,
       y: 10,
       duration: 500,
@@ -88,7 +100,26 @@ export class Multiplayer extends GameDynamic {
         width: 0,
         duration: 10 * 1000,
         ease: "Linear",
+        paused: true
       }],
     })
+  }
+
+  toggleCurrentTurn() {
+    if (this.#currentTurn === "Player1") {
+      this.#currentTurn = "Player2";
+      this.#player1.setText(this.#player1.text.replace(/[ <]+/g, ""));
+
+      this.#player2.setText("> " + this.#player2.text);
+      this.#player2.setX(this.#screenW - this.#player2.width)
+    }
+    else {
+      this.#currentTurn = "Player1";
+
+      this.#player2.setText(this.#player2.text.replace(/[\ >]+/g, ""));
+      this.#player2.setX(this.#screenW - this.#player2.width)
+
+      this.#player1.setText(this.#player1.text + " <");
+    }
   }
 }
