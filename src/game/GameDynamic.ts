@@ -11,14 +11,19 @@ interface CardInfo {
 export class GameDynamic {
   CARD_SIZE = 96;
 
-  #interactive = false;
-  #cardBacks: Phaser.GameObjects.Rectangle[];
-  #cardFrames: Phaser.GameObjects.Rectangle[];
-  #cards: Phaser.GameObjects.Image[];
+  #cardBacks: Phaser.GameObjects.Rectangle[] = [];
+  #cardFrames: Phaser.GameObjects.Rectangle[] = [];
+  #cards: Phaser.GameObjects.Image[] = [];
+  #revealingCardAnimations: Phaser.Tweens.TweenChain[] = [];
+  #hidingCardAnimations: Phaser.Tweens.TweenChain[] = [];
   #backgroundColorName = "first";
   #burstPool: BurstPool;
   #scene: Phaser.Scene;
   #gridSize: "sm" | "lg";
+  #plays = 0;
+  #idle = false;
+  #pairOfCards: CardInfo[] = [];
+  interactive = false;
 
   #keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -36,15 +41,9 @@ export class GameDynamic {
   }
       
   #createBoard() {
-    let plays = 0, matchedPairs = 0;
-    let idle = false;
-    let pairOfCards: CardInfo[] = [];
+    let matchedPairs = 0;
     const quantityOfCards = this.#gridSize === "sm" ? 20 : 40;
     const darkColor = colors["dark-first"].number as number;
-
-    this.#cards = [];
-    this.#cardBacks = [];
-    this.#cardFrames = [];
 
     for (let i = 0; i < quantityOfCards / 2; i++) {
       for (let j = 0; j < 2; j++) {
@@ -80,10 +79,10 @@ export class GameDynamic {
         paused: true,
         persist: true,
         onStart: () => {
-          this.#interactive = false;
+          this.interactive = false;
         },
         onComplete: () => {
-          this.#interactive = true;
+          this.interactive = true;
         },
       }
       const revealingCard = this.#scene.add.tweenchain({
@@ -93,6 +92,7 @@ export class GameDynamic {
         ],
         ...tweenChain
       })
+      this.#revealingCardAnimations.push(revealingCard);
 
       const hidingCard = this.#scene.add.tweenchain({
         tweens: [
@@ -101,41 +101,19 @@ export class GameDynamic {
         ],
         ...tweenChain
       })
-
-      const removingCard = () => {
-        cardBack.off("pointerup");
-        revealingCard.destroy();
-        hidingCard.destroy();
-        cardBack.destroy();
-        this.#cards[i].destroy();
-        cardFrame.destroy();
-
-        this.#burstPool.positionAndPLay(this.#cards[i].x, this.#cards[i].y);
-      }
+      this.#hidingCardAnimations.push(hidingCard);
 
       cardBack.on("pointerup", () => {
-        if (this.#interactive && !idle) {
-          pairOfCards.push({
-            card: this.#cards[i],
-            hidingCardTween: hidingCard,
-            removingCardTween: removingCard
-          })
-          if (plays++ < 1) {
-            revealingCard.restart();
-            return;
-          }
-          revealingCard.restart();
-          idle = true
-          this.#scene.events.emit("wait");
-        }
+        if (this.interactive && !this.#idle)
+          this.flipCard(i);
       });
     }
 
     const cardMatching = this.#scene.add.timeline({
       at: 1000,
       run: () => {
-        if (pairOfCards[0].card.name === pairOfCards[1].card.name) {
-          pairOfCards.forEach(it => it.removingCardTween());
+        if (this.#pairOfCards[0].card.name === this.#pairOfCards[1].card.name) {
+          this.#pairOfCards.forEach(it => it.removingCardTween());
           this.setBackgroundColorByMatchedPairs(++matchedPairs);
           if (matchedPairs === quantityOfCards / 2) {
             this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
@@ -145,11 +123,11 @@ export class GameDynamic {
         else {
           this.onFailure();
         }
-        pairOfCards.forEach(it => it.hidingCardTween.restart())
-        pairOfCards.splice(0, pairOfCards.length);
+        this.#pairOfCards.forEach(it => it.hidingCardTween.restart())
+        this.#pairOfCards.splice(0, this.#pairOfCards.length);
 
-        idle = false;
-        plays = 0;
+        this.#idle = false;
+        this.#plays = 0;
       }
     })
 
@@ -157,6 +135,34 @@ export class GameDynamic {
 
     this.#gridAlign([this.#cardBacks, this.#cards, this.#cardFrames])
   }
+
+  flipCard(locationIndex: number) {
+    const destroyCardResource = () => {
+      this.#cardBacks[locationIndex].off("pointerup");
+      this.#revealingCardAnimations[locationIndex].destroy();
+      this.#hidingCardAnimations[locationIndex].destroy();
+      this.#cardBacks[locationIndex].destroy();
+      this.#cards[locationIndex].destroy();
+      this.#cardFrames[locationIndex].destroy();
+
+      this.#burstPool.positionAndPLay(this.#cards[locationIndex].x, this.#cards[locationIndex].y);
+    }
+
+    this.#pairOfCards.push({
+      card: this.#cards[locationIndex],
+      hidingCardTween: this.#hidingCardAnimations[locationIndex],
+      removingCardTween: destroyCardResource
+    })
+    this.#revealingCardAnimations[locationIndex].restart();
+    this.onFlipCard(locationIndex);
+
+    if (this.#plays++ < 1) return;
+    
+    this.#idle = true
+    this.#scene.events.emit("wait");
+  }
+
+  onFlipCard(locationIndex: number) {}
 
   onFailure() {}
 
@@ -213,7 +219,7 @@ export class GameDynamic {
     this.#scene.add.tweenchain({
       tweens: [...tweens],
       onComplete: () => {
-        this.#interactive = true;
+        this.interactive = true;
       },
     })
   }
