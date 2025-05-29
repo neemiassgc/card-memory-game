@@ -33,9 +33,10 @@ export class Menu extends Scene {
     this.multiplayerOption.setY(this.screenHeight);
 
     this.makeInteractiveAndColorful([this.multiplayerOption, this.singlePlayerOption]);
+    
     this.initAnimation();
 
-    this.singlePlayerOption.on("pointerup", () => {
+    const hideOption = (onComplete: () =>  void) => {
       this.add.tween({
         y: this.scale.height,
         duration: 500,
@@ -43,11 +44,30 @@ export class Menu extends Scene {
         delay: 100,
         paused: false,
         targets: [this.singlePlayerOption, this.multiplayerOption],
-        onComplete: this.handleSinglePlayer.bind(this, textProps)
+        onComplete,
       })
+    }
+    
+    this.singlePlayerOption.on("pointerup", () => {
+      hideOption(() => this.handleSinglePlayer(textProps));
+    })
+
+    this.multiplayerOption.on("pointerup", () => {
+      hideOption(() => this.handleMultiplayer());
     })
 
     EventBus.emit("change-background-color", colors["first"].hex as string);
+
+    EventBus.on("close-modal", () => {
+      this.add.tween({
+        y: this.scale.height / 2,
+        duration: 500,
+        ease: "back",
+        delay: 100,
+        paused: false,
+        targets: [this.singlePlayerOption, this.multiplayerOption],
+      })
+    })
   }
 
   initAnimation() {
@@ -118,6 +138,13 @@ export class Menu extends Scene {
       startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "HARD" }))});
     easyOption.on("pointerup", () =>
       startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "EASY" })));
+  }
+
+  handleMultiplayer() {
+    EventBus.on("set-nickname", (nickname: string) => {
+      this.scene.start("Room", { nickname })
+    })
+    EventBus.emit("open-modal");
   }
 
   makeInteractiveAndColorful(gameObjects: Phaser.GameObjects.Text[]) {
