@@ -32,3 +32,19 @@ export const colors: {[prop: string]: {[prop: string]: number | string}} = {
     hex: "#9f0712"
   },
 }
+
+export function generateArrayOfNumbers(size: number): number[] {
+  const outcome: number[] = [];
+  for (let i = 0; i < size; i++)
+    outcome.push(i);
+  return outcome;
+}
+
+export function serialize(numbers: number[]): string {
+  return numbers.join(";");
+}
+
+export function parseSerializedArray(serializedArray: string): number[] {
+  const slicedString = serializedArray.split(";");
+  return slicedString.map(Number);
+}
