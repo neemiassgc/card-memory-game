@@ -32,15 +32,15 @@ export class GameDynamic {
     "robot", "sliced-bread", "spanner", "spectre", "tesla-turret"
   ]
 
-  constructor(scene: Phaser.Scene, gridSize: "sm" | "lg") {
+  constructor(scene: Phaser.Scene, gridSize: "sm" | "lg", arrangementKeys: number[]) {
     this.#scene = scene;
     this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"].number as number)
     this.#gridSize = gridSize;
 
-    this.#createBoard();
+    this.#createBoard(arrangementKeys);
   }
       
-  #createBoard() {
+  #createBoard(arrangementKeys: number[]) {
     let matchedPairs = 0;
     const quantityOfCards = this.#gridSize === "sm" ? 20 : 40;
     const darkColor = colors["dark-first"].number as number;
@@ -55,7 +55,7 @@ export class GameDynamic {
       }
     }
 
-    Phaser.Actions.Shuffle(this.#cards);
+    this.#cards = rearrangeGameObjects(this.#cards, arrangementKeys);
 
     for (let i = 0; i < quantityOfCards; i++) {
       const cardBack = this.#scene.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
@@ -105,7 +105,7 @@ export class GameDynamic {
 
       cardBack.on("pointerup", () => {
         if (this.interactive && !this.#idle)
-          this.flipCard(i);
+          this.onFlipCard(i);
       });
     }
 
@@ -122,8 +122,8 @@ export class GameDynamic {
         }
         else {
           this.onFailure();
+          this.#pairOfCards.forEach(it => it.hidingCardTween.restart())
         }
-        this.#pairOfCards.forEach(it => it.hidingCardTween.restart())
         this.#pairOfCards.splice(0, this.#pairOfCards.length);
 
         this.#idle = false;
@@ -142,10 +142,10 @@ export class GameDynamic {
       this.#revealingCardAnimations[locationIndex].destroy();
       this.#hidingCardAnimations[locationIndex].destroy();
       this.#cardBacks[locationIndex].destroy();
-      this.#cards[locationIndex].destroy();
       this.#cardFrames[locationIndex].destroy();
-
+      
       this.#burstPool.positionAndPLay(this.#cards[locationIndex].x, this.#cards[locationIndex].y);
+      this.#cards[locationIndex].destroy();
     }
 
     this.#pairOfCards.push({
@@ -154,7 +154,6 @@ export class GameDynamic {
       removingCardTween: destroyCardResource
     })
     this.#revealingCardAnimations[locationIndex].restart();
-    this.onFlipCard(locationIndex);
 
     if (this.#plays++ < 1) return;
     
@@ -245,4 +244,11 @@ export class GameDynamic {
   setBackgroundColorName(colorName: string) {
     this.#backgroundColorName = colorName;
   }
+}
+
+function rearrangeGameObjects<A>(itemsToRearrange: A[], rearrangementIndexes: number[]): A[] {
+  const output: A[] = [];
+  for (const index of rearrangementIndexes)
+    output.push(itemsToRearrange[index]);
+  return output;
 }

@@ -1,3 +1,4 @@
+import { generateArrayOfNumbers } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 
 type Difficulty = "EASY" | "HARD";
@@ -11,7 +12,11 @@ export class SinglePlayer extends GameDynamic {
   #textDisplay: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, difficulty: Difficulty) {
-    super(scene, difficulty === "HARD" ? "lg" : "sm");
+    super(
+      scene,
+      difficulty === "HARD" ? "lg" : "sm",
+      Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(difficulty === "HARD" ? 40 : 20))
+    );
     this.#difficulty = difficulty;
     this.#scene = scene;
     this.#maxTries = difficulty === "EASY" ? 20 : 60; 
@@ -54,6 +59,10 @@ export class SinglePlayer extends GameDynamic {
         this.#scene.scene.start("GameEnd", { backgroundColorName: this.getBackgroundColorName(), winner: false });
       }
     this.#setRemainingTries(this.#tries);
+  }
+
+  onFlipCard(locationIndex: number): void {
+    super.flipCard(locationIndex);
   }
 
   #initAnimation() {

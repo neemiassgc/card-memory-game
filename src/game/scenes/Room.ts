@@ -1,6 +1,18 @@
 import { Loading } from "../Loading";
 import { onValue, ref, set } from "@firebase/database";
 import { getFirebaseDatabase } from "../temp"
+import { generateArrayOfNumbers, parseSerializedArray, serialize } from "@/tools";
+
+interface GameProps {
+  [prop: string]: string | number | number[],
+  turn: string,
+  player1: string,
+  player2: string,
+  player2Score: number,
+  player1Score: number,
+  flipCard: number,
+  cardsPlacement: string
+}
 
 export class Room extends Phaser.Scene {
 
@@ -36,14 +48,14 @@ export class Room extends Phaser.Scene {
     onValue(dbRef, snapshot => {
       if (block) return;
 
-      const table = snapshot.val() as {[prop: string]: string}[];
+      const table = snapshot.val() as GameProps[];
 
       for (const node of table) {
         if (node.player1 === this.nickname) {
           if (node.player2) {
             this.createDisplayText(node.player2, "down");
             block = true;
-            this.#startGame(node.player1, node.player2, "Player1");
+            this.#startGame(node.player1, node.player2, "Player1", parseSerializedArray(node.cardsPlacement));
             return;
           }
           else return;
@@ -56,7 +68,7 @@ export class Room extends Phaser.Scene {
           block = true;
           set(ref(database, "game/table/"+i), {...table[i], "player2": this.nickname})
             .then(() => this.#checkState(i))
-            .then(() => this.#startGame(table[i].player1, this.nickname, "Player2"))
+            .then((cardPlacement) => this.#startGame(table[i].player1, this.nickname, "Player2", cardPlacement as number[]))
             .catch(console.log);
           return;
         }
@@ -71,41 +83,47 @@ export class Room extends Phaser.Scene {
     const database = getFirebaseDatabase();
     const nodeRef = ref(database, "game/table/" + indexNode);
 
-     onValue(nodeRef, snapshot => {
-        const obj = snapshot.val();
-        set(nodeRef, {
-          ...obj,
-          turn: "Player1",
-          player1Score: 0,
-          player2Score: 0,
-          flipCard: -1
-        });
-      })();
+    const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));    
+    onValue(nodeRef, snapshot => {
+      const obj = snapshot.val();
+      console.log("inside onValue too much recursion");
+      set(nodeRef, {
+        ...obj,
+        turn: "Player1",
+        player1Score: 0,
+        player2Score: 0,
+        flipCard: -1,
+        cardsPlacement
+      });
+    })();
   }
 
   #checkState(indexNode: number) {
-    return new Promise((res, rej) => {
+    return new Promise<number[] | string>((res, rej) => {
       const database = getFirebaseDatabase();
       const nodeRef = ref(database, "game/table/" + indexNode);
 
       onValue(nodeRef, snapshot => {
-        const obj = snapshot.val();
+        const obj = snapshot.val() as GameProps;
         const remoteProps = Object.keys(obj);
 
-        const keysToCheck = ["turn", "player1", "player2", "player1Score", "player2Score", "flipCard"];
+        const keysToCheck = [
+          "turn", "player1", "player2", "player1Score",
+          "player2Score", "flipCard", "cardsPlacement"
+        ];
         for (const key of keysToCheck) {
           if (!remoteProps.includes(key)) rej("Invalid state");
         }
-        res("Ok");
+        res(parseSerializedArray(obj["cardsPlacement"]));
       })();
     })
   }
 
-  #startGame(player1: string, player2: string, thisPlayer: string) {
+  #startGame(player1: string, player2: string, thisPlayer: string, cardsPlacement: number[]) {
     setTimeout(() => {
       this.scene.start("Gameplay", {
         gameMode: "Multiplayer",
-        data: { player1, player2, thisPlayer }
+        data: { player1, player2, thisPlayer, cardsPlacement }
       })
     }, 1000)
   }
