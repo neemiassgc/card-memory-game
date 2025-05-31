@@ -1,40 +1,72 @@
 import { colors } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
+import { getFirebaseDatabase } from "./temp";
+import { onValue, ref, set } from "firebase/database";
 
 type TPlayer = "Player1" | "Player2";
+
+interface GameData {
+  player1: string,
+  player2: string,
+  player1Score: number,
+  player2Score: number,
+  turn: TPlayer,
+  flipCard: number,
+}
 
 export class Multiplayer extends GameDynamic {
 
   #scene;
   #scoreDisplay: Phaser.GameObjects.Text;
-  #player1: Phaser.GameObjects.Text;
-  #player2: Phaser.GameObjects.Text;
+  #player1Display: Phaser.GameObjects.Text;
+  #player2Display: Phaser.GameObjects.Text;
+  #player1: string;
+  #player2: string;
   #timeBarPlaceholder: Phaser.GameObjects.Rectangle;
   #timeBar: Phaser.GameObjects.Rectangle;
   #score = [0, 0];
   #screenW;
   #screenH;
   #currentTurn: TPlayer = "Player2";
+  #thisPlayer: TPlayer;
+  #nodeIndex = 0;
 
-  constructor(scene: Phaser.Scene) {
-    super(scene, "sm");
+  constructor(
+    scene: Phaser.Scene,
+    playerNames: { player1: string, player2: string },
+    thisPlayer: TPlayer,
+    arrangementKeys: number[]
+  ) {
+    super(scene, "lg", arrangementKeys);
+
     this.#scene = scene;
     this.#screenW = this.#scene.scale.width;
     this.#screenH = this.#scene.scale.height;
+    this.#player1 = playerNames.player1;
+    this.#player2 = playerNames.player2;
+    this.#thisPlayer = thisPlayer;
 
+    this.initialSetup();
     this.#createTextDisplay();
     this.#createTimeBar();
     this.#initAnimation();
   }
 
   #createTextDisplay() {
-    this.#player1 = this.#scene.add.text(0, this.#screenH, "Thomas", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
+    const textProps = {
+      color: "#ffff",
+      strokeThickness: 2,
+      fontSize: 50
+    }
 
-    this.#scoreDisplay = this.#scene.add.text(0, this.#screenH, "0 | 0", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
+    this.#player1Display = this.#scene.add.text(0, this.#screenH, this.#player1, textProps);
+
+    this.#scoreDisplay = this.#scene.add.text(0, this.#screenH, "0 | 0", textProps);
     this.#scoreDisplay.setX(this.#screenW / 2 - this.#scoreDisplay.width / 2 );
     
-    this.#player2 = this.#scene.add.text(0, this.#screenH, ">  Richard", { color: "#ffff", strokeThickness: 2, fontSize: 50 });
-    this.#player2.setX(this.#screenW - this.#player2.width);
+    this.#player2Display = this.#scene.add.text(0, this.#screenH, this.#player2, textProps);
+    this.#player2Display.setX(this.#screenW - this.#player2Display.width);
+    this.toggleCurrentTurn();
   }
 
   #createTimeBar() {
@@ -65,21 +97,30 @@ export class Multiplayer extends GameDynamic {
   }
 
   onMatched() {
-    if (this.#currentTurn === "Player1") {
-      this.#score[0]++;
-    }
-    else this.#score[1]++;
-
-    this.#scoreDisplay.setText(`${this.#score[0]} | ${this.#score[1]}`);
+    const db = getFirebaseDatabase();
+    const nodeRef = ref(db, "game/table/" + this.#nodeIndex);
+    onValue(nodeRef, snapshot => {
+      set(nodeRef, {
+        ...(snapshot.val()),
+        flipCard: -1,
+        [this.#currentTurn]: this.#score[this.#currentTurn === "Player1" ? 0 : 1] + 1
+      })
+    })()
   }
 
+  onFlipCard(locationIndex: number): void {
+    const db = getFirebaseDatabase();
+    const nodeRef = ref(db, `game/table/${this.#nodeIndex}/flipCard`);
+    set(nodeRef, locationIndex);
+  }
+  
   #initAnimation() {
     const textTweens: {
       targets: Phaser.GameObjects.Text,
       y: number,
       duration: number,
       ease: string
-    }[] = [this.#player1, this.#player2, this.#scoreDisplay].map(it => ({
+    }[] = [this.#player1Display, this.#player2Display, this.#scoreDisplay].map(it => ({
       targets: it,
       y: 10,
       duration: 500,
@@ -106,20 +147,53 @@ export class Multiplayer extends GameDynamic {
   }
 
   toggleCurrentTurn() {
-    if (this.#currentTurn === "Player1") {
-      this.#currentTurn = "Player2";
-      this.#player1.setText(this.#player1.text.replace(/[ <]+/g, ""));
+    if (this.#currentTurn === "Player1")
+      this.displayPlayer2Turn();
+    else this.displayPlayer1Turn();
+  }
 
-      this.#player2.setText("> " + this.#player2.text);
-      this.#player2.setX(this.#screenW - this.#player2.width)
-    }
-    else {
-      this.#currentTurn = "Player1";
+  displayPlayer2Turn() {
+    this.#currentTurn = "Player2";
+    this.#player1Display.setText(this.#player1);
 
-      this.#player2.setText(this.#player2.text.replace(/[\ >]+/g, ""));
-      this.#player2.setX(this.#screenW - this.#player2.width)
+    this.#player2Display.setText("> " + this.#player2);
+    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
+  }
 
-      this.#player1.setText(this.#player1.text + " <");
-    }
+  displayPlayer1Turn() {
+    this.#currentTurn = "Player1";
+    this.#player2Display.setText(this.#player2);
+    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
+
+    this.#player1Display.setText(this.#player1 + " <");
+  }
+
+  initialSetup() {
+    const database = getFirebaseDatabase();
+    const tableRef = ref(database, "game/table");
+    onValue(tableRef, snapshot => {
+      const nodes = snapshot.val() as {[prop: string]: string | number}[];
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].player1 === this.#player1) {
+          this.#nodeIndex = i;
+          return;
+        }
+      }
+    })();
+
+    const nodeRef = ref(database, "game/table/" + this.#nodeIndex);
+
+    onValue(nodeRef, snapshot => {
+      const gameObj = snapshot.val() as GameData;
+      this.#currentTurn = gameObj.turn;
+      this.#score[0] = gameObj.player1Score;
+      this.#score[1] = gameObj.player2Score;
+
+      if (this.#scoreDisplay)
+        this.#scoreDisplay.setText(`${gameObj.player1Score} | ${gameObj.player2Score}`);      
+
+      if (gameObj.flipCard !== -1)
+        this.flipCard(gameObj.flipCard);
+    })
   }
 }
