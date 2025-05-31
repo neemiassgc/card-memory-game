@@ -46,10 +46,10 @@ export class Multiplayer extends GameDynamic {
     this.#player2 = playerNames.player2;
     this.#thisPlayer = thisPlayer;
 
-    this.initialSetup();
     this.#createTextDisplay();
     this.#createTimeBar();
     this.#initAnimation();
+    this.#initialSetup();
   }
 
   #createTextDisplay() {
@@ -66,7 +66,7 @@ export class Multiplayer extends GameDynamic {
     
     this.#player2Display = this.#scene.add.text(0, this.#screenH, this.#player2, textProps);
     this.#player2Display.setX(this.#screenW - this.#player2Display.width);
-    this.toggleCurrentTurn();
+    this.#toggleCurrentTurn();
   }
 
   #createTimeBar() {
@@ -93,19 +93,15 @@ export class Multiplayer extends GameDynamic {
   }
 
   onFailure() {
-    this.toggleCurrentTurn();
+    this.#toggleCurrentTurn();
   }
 
   onMatched() {
     const db = getFirebaseDatabase();
-    const nodeRef = ref(db, "game/table/" + this.#nodeIndex);
-    onValue(nodeRef, snapshot => {
-      set(nodeRef, {
-        ...(snapshot.val()),
-        flipCard: -1,
-        [this.#currentTurn]: this.#score[this.#currentTurn === "Player1" ? 0 : 1] + 1
-      })
-    })()
+    set(
+      ref(db, `game/table/${this.#nodeIndex}/${this.#currentTurn.toLocaleLowerCase()+"Score"}`),
+      (this.#currentTurn === "Player1" ? this.#score[0] : this.#score[1]) + 1
+    )
   }
 
   onFlipCard(locationIndex: number): void {
@@ -146,13 +142,13 @@ export class Multiplayer extends GameDynamic {
     })
   }
 
-  toggleCurrentTurn() {
+  #toggleCurrentTurn() {
     if (this.#currentTurn === "Player1")
-      this.displayPlayer2Turn();
-    else this.displayPlayer1Turn();
+      this.#displayPlayer2Turn();
+    else this.#displayPlayer1Turn();
   }
 
-  displayPlayer2Turn() {
+  #displayPlayer2Turn() {
     this.#currentTurn = "Player2";
     this.#player1Display.setText(this.#player1);
 
@@ -160,7 +156,7 @@ export class Multiplayer extends GameDynamic {
     this.#player2Display.setX(this.#screenW - this.#player2Display.width)
   }
 
-  displayPlayer1Turn() {
+  #displayPlayer1Turn() {
     this.#currentTurn = "Player1";
     this.#player2Display.setText(this.#player2);
     this.#player2Display.setX(this.#screenW - this.#player2Display.width)
@@ -168,7 +164,7 @@ export class Multiplayer extends GameDynamic {
     this.#player1Display.setText(this.#player1 + " <");
   }
 
-  initialSetup() {
+  #initialSetup() {
     const database = getFirebaseDatabase();
     const tableRef = ref(database, "game/table");
     onValue(tableRef, snapshot => {
@@ -181,19 +177,31 @@ export class Multiplayer extends GameDynamic {
       }
     })();
 
-    const nodeRef = ref(database, "game/table/" + this.#nodeIndex);
+    this.#update()
+  }
 
-    onValue(nodeRef, snapshot => {
-      const gameObj = snapshot.val() as GameData;
-      this.#currentTurn = gameObj.turn;
-      this.#score[0] = gameObj.player1Score;
-      this.#score[1] = gameObj.player2Score;
+  #update() {
+    const database = getFirebaseDatabase();
 
-      if (this.#scoreDisplay)
-        this.#scoreDisplay.setText(`${gameObj.player1Score} | ${gameObj.player2Score}`);      
-
-      if (gameObj.flipCard !== -1)
-        this.flipCard(gameObj.flipCard);
+    onValue(ref(database, `game/table/${this.#nodeIndex}/player1Score`), snapshot => {
+      this.#drawScoreDisplay();
+      this.#score[0] = snapshot.val();
+    })    
+    onValue(ref(database, `game/table/${this.#nodeIndex}/player2Score`), snapshot => {
+      this.#drawScoreDisplay();
+      this.#score[1] = snapshot.val();
+    })    
+    onValue(ref(database, `game/table/${this.#nodeIndex}/turn`), snapshot => {
+      this.#currentTurn = snapshot.val();
     })
+    onValue(ref(database, `game/table/${this.#nodeIndex}/flipCard`), snapshot => {
+      const flipCard = snapshot.val();
+      if (flipCard !== -1)
+        this.flipCard(flipCard);
+    })
+  }
+
+  #drawScoreDisplay() {
+    this.#scoreDisplay.setText(`${this.#score[0]} | ${this.#score[1]}`);    
   }
 }
