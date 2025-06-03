@@ -48,3 +48,5 @@ export function parseSerializedArray(serializedArray: string): number[] {
   const slicedString = serializedArray.split(";");
   return slicedString.map(Number);
 }
+
+export type TPlayer = "player1" | "player2";
