@@ -1,4 +1,4 @@
-import { colors } from '../tools';
+import { colors, TPlayer } from '../tools';
 import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
 
@@ -23,7 +23,7 @@ export class GameDynamic {
   #plays = 0;
   #idle = false;
   #pairOfCards: CardInfo[] = [];
-  interactive = false;
+  #interactive = false;
 
   #keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -32,15 +32,15 @@ export class GameDynamic {
     "robot", "sliced-bread", "spanner", "spectre", "tesla-turret"
   ]
 
-  constructor(scene: Phaser.Scene, gridSize: "sm" | "lg", arrangementKeys: number[]) {
+  constructor(scene: Phaser.Scene, gridSize: "sm" | "lg", arrangementKeys: number[], localPlayer: TPlayer) {
     this.#scene = scene;
     this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"].number as number)
     this.#gridSize = gridSize;
 
-    this.#createBoard(arrangementKeys);
+    this.#createBoard(arrangementKeys, localPlayer);
   }
       
-  #createBoard(arrangementKeys: number[]) {
+  #createBoard(arrangementKeys: number[], localPlayer: TPlayer) {
     let matchedPairs = 0;
     const quantityOfCards = this.#gridSize === "sm" ? 20 : 40;
     const darkColor = colors["dark-first"].number as number;
@@ -79,10 +79,10 @@ export class GameDynamic {
         paused: true,
         persist: true,
         onStart: () => {
-          this.interactive = false;
+          this.#interactive = false;
         },
         onComplete: () => {
-          this.interactive = true;
+          this.#interactive = true;
         },
       }
       const revealingCard = this.#scene.add.tweenchain({
@@ -104,39 +104,36 @@ export class GameDynamic {
       this.#hidingCardAnimations.push(hidingCard);
 
       cardBack.on("pointerup", () => {
-        if (this.interactive && !this.#idle)
-          this.onFlipCard(i);
+        if (this.#interactive && !this.#idle)
+          this.dispatchCardFlip(i, localPlayer);
       });
     }
 
-    const cardMatching = this.#scene.add.timeline({
-      at: 1000,
-      run: () => {
+    this.#scene.events.on("wait", (by: TPlayer) => {
+      setTimeout(() => {
         if (this.#pairOfCards[0].card.name === this.#pairOfCards[1].card.name) {
           this.#pairOfCards.forEach(it => it.removingCardTween());
           this.setBackgroundColorByMatchedPairs(++matchedPairs);
           if (matchedPairs === quantityOfCards / 2) {
             this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
           }
-          this.onMatched();
+          this.onMatch();
         }
         else {
-          this.onFailure();
+          this.onFailure(by);
           this.#pairOfCards.forEach(it => it.hidingCardTween.restart())
         }
         this.#pairOfCards.splice(0, this.#pairOfCards.length);
 
         this.#idle = false;
         this.#plays = 0;
-      }
-    })
-
-    this.#scene.events.on("wait", () => cardMatching.play());
+      }, 1000)
+    });
 
     this.#gridAlign([this.#cardBacks, this.#cards, this.#cardFrames])
   }
 
-  flipCard(locationIndex: number) {
+  flipCard(locationIndex: number, by: TPlayer) {
     const destroyCardResource = () => {
       this.#cardBacks[locationIndex].off("pointerup");
       this.#revealingCardAnimations[locationIndex].destroy();
@@ -158,14 +155,14 @@ export class GameDynamic {
     if (this.#plays++ < 1) return;
     
     this.#idle = true
-    this.#scene.events.emit("wait");
+    this.#scene.events.emit("wait", by);
   }
 
-  onFlipCard(locationIndex: number) {}
+  dispatchCardFlip(locationIndex: number, by: TPlayer) {}
 
-  onFailure() {}
+  onFailure(by: TPlayer) {}
 
-  onMatched() {}
+  onMatch() {}
 
   #gridAlign(gameObjects: Phaser.GameObjects.GameObject[][]) {
     const cellGap = 10;
@@ -218,7 +215,7 @@ export class GameDynamic {
     this.#scene.add.tweenchain({
       tweens: [...tweens],
       onComplete: () => {
-        this.interactive = true;
+        this.#interactive = true;
       },
     })
   }

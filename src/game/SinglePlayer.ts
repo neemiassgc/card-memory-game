@@ -1,4 +1,4 @@
-import { generateArrayOfNumbers } from "@/tools";
+import { generateArrayOfNumbers, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 
 type Difficulty = "EASY" | "HARD";
@@ -15,7 +15,8 @@ export class SinglePlayer extends GameDynamic {
     super(
       scene,
       difficulty === "HARD" ? "lg" : "sm",
-      Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(difficulty === "HARD" ? 40 : 20))
+      Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(difficulty === "HARD" ? 40 : 20)),
+      "player1"
     );
     this.#difficulty = difficulty;
     this.#scene = scene;
@@ -61,8 +62,8 @@ export class SinglePlayer extends GameDynamic {
     this.#setRemainingTries(this.#tries);
   }
 
-  onFlipCard(locationIndex: number): void {
-    super.flipCard(locationIndex);
+  dispatchCardFlip(locationIndex: number, by: TPlayer) {
+    super.flipCard(locationIndex, by);
   }
 
   #initAnimation() {

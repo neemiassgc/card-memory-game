@@ -55,7 +55,7 @@ export class Room extends Phaser.Scene {
           if (node.player2) {
             this.createDisplayText(node.player2, "down");
             block = true;
-            this.#startGame(node.player1, node.player2, "Player1", parseSerializedArray(node.cardsPlacement));
+            this.#startGame(node.player1, node.player2, "player1", parseSerializedArray(node.cardsPlacement));
             return;
           }
           else return;
@@ -68,7 +68,7 @@ export class Room extends Phaser.Scene {
           block = true;
           set(ref(database, "game/table/"+i), {...table[i], "player2": this.nickname})
             .then(() => this.#checkState(i))
-            .then((cardPlacement) => this.#startGame(table[i].player1, this.nickname, "Player2", cardPlacement as number[]))
+            .then((cardPlacement) => this.#startGame(table[i].player1, this.nickname, "player2", cardPlacement as number[]))
             .catch(console.log);
           return;
         }
@@ -83,16 +83,18 @@ export class Room extends Phaser.Scene {
     const database = getFirebaseDatabase();
     const nodeRef = ref(database, "game/table/" + indexNode);
 
-    const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));    
+    const cardsPlacement = serialize(generateArrayOfNumbers(40));    
     onValue(nodeRef, snapshot => {
       const obj = snapshot.val();
-      console.log("inside onValue too much recursion");
       set(nodeRef, {
         ...obj,
-        turn: "Player1",
+        turn: "player1",
         player1Score: 0,
         player2Score: 0,
-        flipCard: -1,
+        cardFlip: {
+          location: -1,
+          by: "player1"
+        },
         cardsPlacement
       });
     })();
@@ -109,7 +111,7 @@ export class Room extends Phaser.Scene {
 
         const keysToCheck = [
           "turn", "player1", "player2", "player1Score",
-          "player2Score", "flipCard", "cardsPlacement"
+          "player2Score", "cardFlip", "cardsPlacement"
         ];
         for (const key of keysToCheck) {
           if (!remoteProps.includes(key)) rej("Invalid state");

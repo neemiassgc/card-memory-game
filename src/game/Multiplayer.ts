@@ -1,9 +1,7 @@
-import { colors } from "@/tools";
+import { colors, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { getFirebaseDatabase } from "./temp";
 import { onValue, ref, set } from "firebase/database";
-
-type TPlayer = "Player1" | "Player2";
 
 interface GameData {
   player1: string,
@@ -27,24 +25,24 @@ export class Multiplayer extends GameDynamic {
   #score = [0, 0];
   #screenW;
   #screenH;
-  #currentTurn: TPlayer = "Player2";
-  #thisPlayer: TPlayer;
+  #localPlayer: TPlayer;
   #nodeIndex = 0;
+  #nextTurn: TPlayer = "player1";
 
   constructor(
     scene: Phaser.Scene,
     playerNames: { player1: string, player2: string },
-    thisPlayer: TPlayer,
+    localPlayer: TPlayer,
     arrangementKeys: number[]
   ) {
-    super(scene, "lg", arrangementKeys);
+    super(scene, "lg", arrangementKeys, localPlayer);
 
     this.#scene = scene;
     this.#screenW = this.#scene.scale.width;
     this.#screenH = this.#scene.scale.height;
     this.#player1 = playerNames.player1;
     this.#player2 = playerNames.player2;
-    this.#thisPlayer = thisPlayer;
+    this.#localPlayer = localPlayer;
 
     this.#createTextDisplay();
     this.#createTimeBar();
@@ -66,7 +64,6 @@ export class Multiplayer extends GameDynamic {
     
     this.#player2Display = this.#scene.add.text(0, this.#screenH, this.#player2, textProps);
     this.#player2Display.setX(this.#screenW - this.#player2Display.width);
-    this.#toggleCurrentTurn();
   }
 
   #createTimeBar() {
@@ -92,22 +89,27 @@ export class Multiplayer extends GameDynamic {
     }
   }
 
-  onFailure() {
-    this.#toggleCurrentTurn();
+  onFailure(by: TPlayer) {
+    if (by !== this.#nextTurn) return;
+    const db = getFirebaseDatabase();
+    const nodeRef = `game/table/${this.#nodeIndex}/turn`;
+    set(ref(db, nodeRef), `player${by === "player1" ? 2 : 1}`)
   }
 
-  onMatched() {
+  onMatch() {
+    if (this.#localPlayer !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
     set(
-      ref(db, `game/table/${this.#nodeIndex}/${this.#currentTurn.toLocaleLowerCase()+"Score"}`),
-      (this.#currentTurn === "Player1" ? this.#score[0] : this.#score[1]) + 1
+      ref(db, `game/table/${this.#nodeIndex}/${this.#nextTurn+"Score"}`),
+      (this.#nextTurn === "player1" ? this.#score[0] : this.#score[1]) + 1
     )
   }
 
-  onFlipCard(locationIndex: number): void {
+  dispatchCardFlip(locationIndex: number, by: TPlayer): void {
+    if (by !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
-    const nodeRef = ref(db, `game/table/${this.#nodeIndex}/flipCard`);
-    set(nodeRef, locationIndex);
+    const nodeRef = ref(db, `game/table/${this.#nodeIndex}/cardFlip`);
+    set(nodeRef, { location: locationIndex, by });
   }
   
   #initAnimation() {
@@ -142,28 +144,7 @@ export class Multiplayer extends GameDynamic {
     })
   }
 
-  #toggleCurrentTurn() {
-    if (this.#currentTurn === "Player1")
-      this.#displayPlayer2Turn();
-    else this.#displayPlayer1Turn();
-  }
-
-  #displayPlayer2Turn() {
-    this.#currentTurn = "Player2";
-    this.#player1Display.setText(this.#player1);
-
-    this.#player2Display.setText("> " + this.#player2);
-    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
-  }
-
-  #displayPlayer1Turn() {
-    this.#currentTurn = "Player1";
-    this.#player2Display.setText(this.#player2);
-    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
-
-    this.#player1Display.setText(this.#player1 + " <");
-  }
-
+  
   #initialSetup() {
     const database = getFirebaseDatabase();
     const tableRef = ref(database, "game/table");
@@ -176,31 +157,49 @@ export class Multiplayer extends GameDynamic {
         }
       }
     })();
-
+    
     this.#update()
   }
-
+  
   #update() {
     const database = getFirebaseDatabase();
-
+    
     onValue(ref(database, `game/table/${this.#nodeIndex}/player1Score`), snapshot => {
-      this.#drawScoreDisplay();
       this.#score[0] = snapshot.val();
+      this.#drawScoreDisplay();
     })    
     onValue(ref(database, `game/table/${this.#nodeIndex}/player2Score`), snapshot => {
-      this.#drawScoreDisplay();
       this.#score[1] = snapshot.val();
+      this.#drawScoreDisplay();
     })    
     onValue(ref(database, `game/table/${this.#nodeIndex}/turn`), snapshot => {
-      this.#currentTurn = snapshot.val();
+      this.#nextTurn = snapshot.val();
+
+      if (this.#nextTurn === "player1")
+        this.#displayPlayer1Turn();
+      else this.#displayPlayer2Turn();
     })
-    onValue(ref(database, `game/table/${this.#nodeIndex}/flipCard`), snapshot => {
-      const flipCard = snapshot.val();
-      if (flipCard !== -1)
-        this.flipCard(flipCard);
+    onValue(ref(database, `game/table/${this.#nodeIndex}/cardFlip`), snapshot => {
+      const cardFlip = snapshot.val();
+      if (cardFlip.location !== -1)
+        this.flipCard(cardFlip.location, cardFlip.by);
     })
   }
 
+  #displayPlayer2Turn() {
+    this.#player1Display.setText(this.#player1);
+
+    this.#player2Display.setText("> " + this.#player2);
+    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
+  }
+
+  #displayPlayer1Turn() {
+    this.#player2Display.setText(this.#player2);
+    this.#player2Display.setX(this.#screenW - this.#player2Display.width)
+
+    this.#player1Display.setText(this.#player1 + " <");
+  }
+  
   #drawScoreDisplay() {
     this.#scoreDisplay.setText(`${this.#score[0]} | ${this.#score[1]}`);    
   }

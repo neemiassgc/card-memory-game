@@ -1,13 +1,14 @@
 import { Scene } from 'phaser';
 import { SinglePlayer } from '../SinglePlayer';
 import { Multiplayer } from '../Multiplayer';
+import { TPlayer } from '@/tools';
 
 type GameMode = "SinglePlayer" | "Multiplayer";
 type Difficult = "HARD" | "EASY";
 type MultiplayerData = {
   player1: string,
   player2: string,
-  thisPlayer: "Player1" | "Player2",
+  thisPlayer: TPlayer
   cardsPlacement: number[]
 }
 
