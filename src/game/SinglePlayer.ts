@@ -74,6 +74,6 @@ export class SinglePlayer extends GameDynamic {
       ease: "Bounce"
     }
 
-    super.initAnimation(displayTextTween);
+    super.initAnimation({ tweenObject: displayTextTween });
   }
 }
