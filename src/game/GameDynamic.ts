@@ -3,9 +3,8 @@ import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
 
 interface CardInfo {
-  card: Phaser.GameObjects.Image,
-  hidingCardTween: Phaser.Tweens.TweenChain,
-  removingCardTween: () => void
+  cardLocationIndex: number,
+  removingCardTween: () => void,
 }
 
 export class GameDynamic {
@@ -24,6 +23,9 @@ export class GameDynamic {
   #idle = false;
   #pairOfCards: CardInfo[] = [];
   #interactive = false;
+  #matchedPairs = 0;
+  #quantityOfCards = 0;
+
 
   #keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -36,16 +38,15 @@ export class GameDynamic {
     this.#scene = scene;
     this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"].number as number)
     this.#gridSize = gridSize;
+    this.#quantityOfCards = gridSize === "sm" ? 20 : 40;
 
     this.#createBoard(arrangementKeys, localPlayer);
   }
       
   #createBoard(arrangementKeys: number[], localPlayer: TPlayer) {
-    let matchedPairs = 0;
-    const quantityOfCards = this.#gridSize === "sm" ? 20 : 40;
     const darkColor = colors["dark-first"].number as number;
 
-    for (let i = 0; i < quantityOfCards / 2; i++) {
+    for (let i = 0; i < this.#quantityOfCards / 2; i++) {
       for (let j = 0; j < 2; j++) {
         const card = this.#scene.add.image(0, 0, this.#keys[i]); 
         card.setScale(0, 1);
@@ -57,7 +58,7 @@ export class GameDynamic {
 
     this.#cards = rearrangeGameObjects(this.#cards, arrangementKeys);
 
-    for (let i = 0; i < quantityOfCards; i++) {
+    for (let i = 0; i < this.#quantityOfCards; i++) {
       const cardBack = this.#scene.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardBack.setScale(0, 0)
       this.#cardBacks.push(cardBack);
@@ -99,7 +100,10 @@ export class GameDynamic {
           {...tween, targets: [cardFrame, this.#cards[i]]},
           {...tween, targets: this.#cardBacks[i], scaleX: 1}
         ],
-        ...tweenChain
+        ...tweenChain,
+        onComplete: () => {
+          this.#interactive = true;
+        }
       })
       this.#hidingCardAnimations.push(hidingCard);
 
@@ -108,27 +112,6 @@ export class GameDynamic {
           this.dispatchCardFlip(i, localPlayer);
       });
     }
-
-    this.#scene.events.on("wait", (by: TPlayer) => {
-      setTimeout(() => {
-        if (this.#pairOfCards[0].card.name === this.#pairOfCards[1].card.name) {
-          this.#pairOfCards.forEach(it => it.removingCardTween());
-          this.setBackgroundColorByMatchedPairs(++matchedPairs);
-          if (matchedPairs === quantityOfCards / 2) {
-            this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
-          }
-          this.onMatch();
-        }
-        else {
-          this.onFailure(by);
-          this.#pairOfCards.forEach(it => it.hidingCardTween.restart())
-        }
-        this.#pairOfCards.splice(0, this.#pairOfCards.length);
-
-        this.#idle = false;
-        this.#plays = 0;
-      }, 1000)
-    });
 
     this.#gridAlign([this.#cardBacks, this.#cards, this.#cardFrames])
   }
@@ -146,16 +129,42 @@ export class GameDynamic {
     }
 
     this.#pairOfCards.push({
-      card: this.#cards[locationIndex],
-      hidingCardTween: this.#hidingCardAnimations[locationIndex],
-      removingCardTween: destroyCardResource
+      cardLocationIndex: locationIndex,
+      removingCardTween: destroyCardResource,
     })
     this.#revealingCardAnimations[locationIndex].restart();
 
+    this.#matchCards(by);
+  }
+
+  #matchCards(by: TPlayer) {
     if (this.#plays++ < 1) return;
-    
-    this.#idle = true
-    this.#scene.events.emit("wait", by);
+
+    this.#idle = true;
+    setTimeout(() => {
+      if (this.#pairOfCards.length === 0) return;
+      const cardA = this.#cards[this.#pairOfCards[0].cardLocationIndex];
+      const cardB = this.#cards[this.#pairOfCards[1].cardLocationIndex];
+      if (cardA.name === cardB.name) {
+        this.#pairOfCards.forEach(it => it.removingCardTween());
+        this.setBackgroundColorByMatchedPairs(++this.#matchedPairs);
+        if (this.#matchedPairs === this.#quantityOfCards / 2) {
+          this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
+        }
+        this.onMatch();
+      }
+      else {
+        this.#pairOfCards.forEach(it => this.#hidingCardAnimations[it.cardLocationIndex].restart())
+        this.onFailure(by);
+      }
+      this.#resetPlay();
+    }, 1000)
+  }
+
+  #resetPlay() {
+    this.#pairOfCards.splice(0, this.#pairOfCards.length);
+    this.#idle = false;
+    this.#plays = 0;
   }
 
   dispatchCardFlip(locationIndex: number, by: TPlayer) {}
@@ -181,7 +190,7 @@ export class GameDynamic {
     }
   }
 
-  initAnimation(tweenObject?: any) {
+  initAnimation(integrationObject: { tweenObject?: any, onComplete?: () => void }) {
     const steps = this.#gridSize === "lg" ?
     [
       [0, 8, 16, 24, 32],
@@ -209,13 +218,15 @@ export class GameDynamic {
       ease: "back"
     }))
 
-    if (tweenObject)
-      tweens.push(tweenObject);
+    if (integrationObject.tweenObject)
+      tweens.push(integrationObject.tweenObject);
     
     this.#scene.add.tweenchain({
       tweens: [...tweens],
       onComplete: () => {
         this.#interactive = true;
+        if (integrationObject.onComplete)
+          integrationObject.onComplete();
       },
     })
   }
