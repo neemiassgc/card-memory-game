@@ -95,6 +95,7 @@ export class Room extends Phaser.Scene {
           location: -1,
           by: "player1"
         },
+        timeBarReset: -1,
         cardsPlacement
       });
     })();
@@ -110,8 +111,8 @@ export class Room extends Phaser.Scene {
         const remoteProps = Object.keys(obj);
 
         const keysToCheck = [
-          "turn", "player1", "player2", "player1Score",
-          "player2Score", "cardFlip", "cardsPlacement"
+          "turn", "player1", "player2", "player1Score", "timeBarReset",
+          "player2Score", "cardFlip", "cardsPlacement",
         ];
         for (const key of keysToCheck) {
           if (!remoteProps.includes(key)) rej("Invalid state");

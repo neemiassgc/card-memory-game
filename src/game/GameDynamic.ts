@@ -19,13 +19,12 @@ export class GameDynamic {
   #burstPool: BurstPool;
   #scene: Phaser.Scene;
   #gridSize: "sm" | "lg";
-  #plays = 0;
   #idle = false;
   #pairOfCards: CardInfo[] = [];
   #interactive = false;
   #matchedPairs = 0;
   #quantityOfCards = 0;
-
+  #plays = 0;
 
   #keys = [
     "avocado", "barbarian", "carousel", "cash", "clubs",
@@ -134,11 +133,11 @@ export class GameDynamic {
     })
     this.#revealingCardAnimations[locationIndex].restart();
 
-    this.#matchCards(by);
+    this.matchCards(by)
   }
 
-  #matchCards(by: TPlayer) {
-    if (this.#plays++ < 1) return;
+  matchCards(by: TPlayer) {
+    if (++this.#plays < 2) return;
 
     this.#idle = true;
     setTimeout(() => {
@@ -159,6 +158,11 @@ export class GameDynamic {
       }
       this.#resetPlay();
     }, 1000)
+  }
+
+  releasePlay() {
+    this.#pairOfCards.forEach(it => this.#hidingCardAnimations[it.cardLocationIndex].restart());
+    this.#resetPlay();
   }
 
   #resetPlay() {
@@ -251,6 +255,10 @@ export class GameDynamic {
 
   setBackgroundColorName(colorName: string) {
     this.#backgroundColorName = colorName;
+  }
+
+  setInteractive(value: boolean) {
+    this.#interactive = value;
   }
 }
 

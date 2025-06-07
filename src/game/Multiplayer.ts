@@ -22,6 +22,8 @@ export class Multiplayer extends GameDynamic {
   #player2: string;
   #timeBarPlaceholder: Phaser.GameObjects.Rectangle;
   #timeBar: Phaser.GameObjects.Rectangle;
+  #timeBarRunner: Phaser.Tweens.Tween;
+  #timeBarIncrement = 0;
   #score = [0, 0];
   #screenW;
   #screenH;
@@ -70,19 +72,46 @@ export class Multiplayer extends GameDynamic {
     const barWidth = 620;
     this.#timeBarPlaceholder = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, colors["dark-first"].number as number);
     this.#timeBar = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, 0xffffff);
+
+    let stop = false;
+    this.#timeBarRunner = this.#scene.add.tween({
+      targets: this.#timeBar,
+      width: 0,
+      duration: 20_000,
+      ease: "linear",
+      paused: true,
+      persist: true,
+      onStart: () => {
+        stop = false;
+      },
+      onUpdate: (tween) => {
+        if (tween.elapsed >= tween.duration - 2000 && !stop) {
+          stop = true;
+          super.setInteractive(false);
+        }
+      },
+      onComplete: () => {
+        super.releasePlay();
+        if (this.#localPlayer === "player1")
+          this.onFailure(this.#nextTurn);
+      }
+    })
   }
 
   setBackgroundColorByMatchedPairs(matchedPairs: number) {
     switch(matchedPairs) {
       case 5: {
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-second"].number as number)
         super.setColor("second");
         break;
       }
       case 10: {
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-third"].number as number)
         super.setColor("third");
         break;
       }
       case 15: {
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-fourth"].number as number)
         super.setColor("fourth");
         break;
       }
@@ -94,6 +123,7 @@ export class Multiplayer extends GameDynamic {
     const db = getFirebaseDatabase();
     const nodeRef = `game/table/${this.#nodeIndex}/turn`;
     set(ref(db, nodeRef), `player${by === "player1" ? 2 : 1}`)
+    this.#resetTimeBar();
   }
 
   onMatch() {
@@ -103,6 +133,7 @@ export class Multiplayer extends GameDynamic {
       ref(db, `game/table/${this.#nodeIndex}/${this.#nextTurn+"Score"}`),
       (this.#nextTurn === "player1" ? this.#score[0] : this.#score[1]) + 1
     )
+    this.#resetTimeBar();
   }
 
   dispatchCardFlip(locationIndex: number, by: TPlayer): void {
@@ -132,19 +163,15 @@ export class Multiplayer extends GameDynamic {
         x: this.#screenW / 2,
         duration: 500,
         ease: "bounce",
-        onComplete: () => super.initAnimation()
-      },
-      {
-        targets: this.#timeBar,
-        width: 0,
-        duration: 10 * 1000,
-        ease: "Linear",
-        paused: true
+        onComplete: () => super.initAnimation({ onComplete: () => this.#resetTimeBar() })
       }],
     })
   }
 
-  
+  #resetTimeBar() {
+    set(ref(getFirebaseDatabase(), `game/table/${this.#nodeIndex}/timeBarReset`), this.#timeBarIncrement++);
+  }
+
   #initialSetup() {
     const database = getFirebaseDatabase();
     const tableRef = ref(database, "game/table");
@@ -183,6 +210,12 @@ export class Multiplayer extends GameDynamic {
       const cardFlip = snapshot.val();
       if (cardFlip.location !== -1)
         this.flipCard(cardFlip.location, cardFlip.by);
+    })
+    onValue(ref(database, `game/table/${this.#nodeIndex}/timeBarReset`), snapshot => {
+      if (snapshot.val() !== -1) {
+        super.setInteractive(true);
+        this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
+      }
     })
   }
 
