@@ -55,6 +55,10 @@ export class SinglePlayer extends GameDynamic {
     }
   }
 
+  onMatch(): void {
+    super.checkGameEnd();
+  }
+
   onFailure() {
     if (++this.#tries === this.#maxTries) {
         this.#scene.scene.start("GameEnd", { backgroundColorName: this.getBackgroundColorName(), winner: false });

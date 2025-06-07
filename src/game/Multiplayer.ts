@@ -194,10 +194,12 @@ export class Multiplayer extends GameDynamic {
     onValue(ref(database, `game/table/${this.#nodeIndex}/player1Score`), snapshot => {
       this.#score[0] = snapshot.val();
       this.#drawScoreDisplay();
+      this.#checkGameEnd();
     })    
     onValue(ref(database, `game/table/${this.#nodeIndex}/player2Score`), snapshot => {
       this.#score[1] = snapshot.val();
       this.#drawScoreDisplay();
+      this.#checkGameEnd();
     })    
     onValue(ref(database, `game/table/${this.#nodeIndex}/turn`), snapshot => {
       this.#nextTurn = snapshot.val();
@@ -235,5 +237,15 @@ export class Multiplayer extends GameDynamic {
   
   #drawScoreDisplay() {
     this.#scoreDisplay.setText(`${this.#score[0]} | ${this.#score[1]}`);    
+  }
+
+  #checkGameEnd() {
+    if (this.#score[0] + this.#score[1] === 20) {
+      this.#scene.scene.start("GameEnd", {
+        backgroundColorName: "fourth", winner: true,
+        winnerPlayerName: this.#score[0] > this.#score[1] ? this.#player1 : this.#player2
+      });
+      return;
+    }
   }
 }

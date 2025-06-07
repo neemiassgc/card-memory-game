@@ -7,12 +7,13 @@ export class GameEnd extends Scene {
     super("GameEnd")
   }
 
-  create(data: { backgroundColorName: string, winner: boolean }) {
+  create(data: { backgroundColorName: string, winner: boolean, winnerPlayerName?: string }) {
     this.cameras.main.setBackgroundColor(colors[data.backgroundColorName].hex as string);
     const screenWidth = this.scale.width;
     const screenHeight = this.scale.height;
 
-    const text = this.add.text(0, 0, data.winner ? "Congratulations, You Won!" : "You Lost!", {
+    const message = data.winnerPlayerName ? `${data.winnerPlayerName} won!` : data.winner ? "Congratulations, You Won!" : "You Lost!"
+    const text = this.add.text(0, 0, message, {
       color: "#ffff",
       fontStyle: "bold",
       fontSize: "60px",

@@ -147,9 +147,6 @@ export class GameDynamic {
       if (cardA.name === cardB.name) {
         this.#pairOfCards.forEach(it => it.removingCardTween());
         this.setBackgroundColorByMatchedPairs(++this.#matchedPairs);
-        if (this.#matchedPairs === this.#quantityOfCards / 2) {
-          this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
-        }
         this.onMatch();
       }
       else {
@@ -169,6 +166,12 @@ export class GameDynamic {
     this.#pairOfCards.splice(0, this.#pairOfCards.length);
     this.#idle = false;
     this.#plays = 0;
+  }
+
+  checkGameEnd() {
+    if (this.#matchedPairs === this.#quantityOfCards / 2) {
+      this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
+    }
   }
 
   dispatchCardFlip(locationIndex: number, by: TPlayer) {}
