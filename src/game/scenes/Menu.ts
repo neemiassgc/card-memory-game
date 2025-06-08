@@ -35,61 +35,22 @@ export class Menu extends Scene {
     this.makeInteractiveAndColorful([this.multiplayerOption, this.singlePlayerOption]);
     
     this.initAnimation();
-
-    const hideOption = (onComplete: () =>  void) => {
-      this.add.tween({
-        y: this.scale.height,
-        duration: 500,
-        ease: "back",
-        delay: 100,
-        paused: false,
-        targets: [this.singlePlayerOption, this.multiplayerOption],
-        onComplete,
-      })
-    }
     
     this.singlePlayerOption.on("pointerup", () => {
-      hideOption(() => this.handleSinglePlayer(textProps));
+      this.hideOptions([this.singlePlayerOption, this.multiplayerOption], () => this.handleSinglePlayer(textProps));
     })
 
     this.multiplayerOption.on("pointerup", () => {
-      hideOption(() => this.handleMultiplayer());
+      this.hideOptions([this.singlePlayerOption, this.multiplayerOption], () => this.handleMultiplayer());
     })
 
     EventBus.emit("change-background-color", colors["first"].hex as string);
 
-    EventBus.on("close-modal", () => {
-      this.add.tween({
-        y: this.scale.height / 2,
-        duration: 500,
-        ease: "back",
-        delay: 100,
-        paused: false,
-        targets: [this.singlePlayerOption, this.multiplayerOption],
-      })
-    })
+    EventBus.on("close-modal", this.revealOptions.bind(this, [this.singlePlayerOption, this.multiplayerOption]))
   }
 
   initAnimation() {
-    const tween = {
-      paused: false,
-      y: this.scale.height,
-      duration: 500,
-      ease: "back",
-      delay: 100,
-    }
-
-    this.add.tween({
-      ...tween,
-      targets: this.singlePlayerOption,
-      y: this.screenHeight / 2 - this.singlePlayerOption.height / 2 - 100
-    })  
-        
-    this.add.tween({
-      ...tween,
-      targets: this.multiplayerOption,
-      y: this.screenHeight / 2 - this.multiplayerOption.height / 2 - 30
-    })
+    this.revealOptions([this.singlePlayerOption, this.multiplayerOption]);
   }
 
   handleSinglePlayer(textProps: any) {
@@ -101,36 +62,9 @@ export class Menu extends Scene {
     easyOption.setX(this.screenWidth / 2 - easyOption.width / 2);
     easyOption.setY(this.screenHeight);
     
-    const tween = {
-      paused: false,
-      y: this.scale.height,
-      duration: 500,
-      ease: "back",
-      delay: 100,
-    }
+    this.revealOptions([easyOption, hardOption]);
 
-    const revealDifficultyOptions = [
-      this.add.tween({
-        ...tween,
-        targets: hardOption,
-        y: this.scale.height / 2 - hardOption.height / 2 - 100,
-      }),
-      this.add.tween({
-        ...tween,
-        targets: easyOption,
-        y: this.scale.height / 2 - easyOption.height / 2 - 30
-      }),
-    ]
-
-    revealDifficultyOptions.forEach(it => it.play());
-
-    const startGame = (onComplete: () => void) => {
-      this.add.tween({
-        ...tween,
-        targets: [hardOption, easyOption],
-        onComplete,
-      })
-    }
+    const startGame = (onComplete: () => void) => this.hideOptions([easyOption, hardOption], onComplete);
 
     this.makeInteractiveAndColorful([easyOption, hardOption]);
 
@@ -138,6 +72,40 @@ export class Menu extends Scene {
       startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "HARD" }))});
     easyOption.on("pointerup", () =>
       startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", data: "EASY" })));
+  }
+
+  revealOptions(objects: Phaser.GameObjects.GameObject[]) {
+     const tween = {
+      paused: false,
+      y: this.scale.height,
+      duration: 500,
+      ease: "back",
+      delay: 100,
+    }
+
+    this.add.tween({
+      ...tween,
+      targets: objects[0],
+      y: this.screenHeight / 2 - this.singlePlayerOption.height / 2 - 100
+    })  
+        
+    this.add.tween({
+      ...tween,
+      targets: objects[1],
+      y: this.screenHeight / 2 - this.multiplayerOption.height / 2 - 30
+    })
+  }
+
+  hideOptions(objects: Phaser.GameObjects.GameObject[], onComplete: () => void) {
+    this.add.tween({
+      y: this.scale.height,
+      duration: 500,
+      ease: "back",
+      delay: 100,
+      paused: false,
+      targets: objects,
+      onComplete,
+    })
   }
 
   handleMultiplayer() {
