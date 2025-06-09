@@ -41,5 +41,7 @@ export class Boot extends Phaser.Scene {
 
     for (const key of keys)
       this.load.svg(key, `assets/${key}.svg`, {width: 96, height: 96}) 
+
+    this.load.svg("anticlockwise-rotation", "assets/anticlockwise-rotation.svg", {width: 32, height: 32});
   }
 }
