@@ -56,14 +56,15 @@ export class Room extends Phaser.Scene {
 
       const table = snapshot.val();
 
+      // verify to join as player1
       for (const node in table) {
-        if (table[node].player1 === this.nickname) {
-          if (table[node].player2) {
-            this.createDisplayText(table[node].player2, "down");
+        if (table[node].player1?.nickname === this.nickname) {
+          if (table[node].player2?.nickname) {
+            this.createDisplayText(table[node].player2.nickname, "down");
             block = true;
             this.#startGame({
-              player1: table[node].player1,
-              player2: table[node].player2,
+              player1: table[node].player1.nickname,
+              player2: table[node].player2.nickname,
               thisPlayer: "player1",
               cardsPlacement:  parseSerializedArray(table[node].cardsPlacement),
               nodeId: node
@@ -73,14 +74,16 @@ export class Room extends Phaser.Scene {
         }
       }
 
+
+      // verify to join as player2
       for (const node in table) {
-        if (table[node].player1 && !table[node].player2) {
-          this.createDisplayText(table[node].player1, "down");
+        if (table[node].player1?.nickname && !table[node].player2?.nickname) {
+          this.createDisplayText(table[node].player1.nickname, "down");
           block = true;
-          set(ref(database, `game/table/${node}/player2`), this.nickname)
+          set(ref(database, `game/table/${node}/player2/nickname`), this.nickname)
             .then(() => this.#checkState(node))
             .then(cardsPlacement => this.#startGame({
-              player1: table[node].player1,
+              player1: table[node].player1.nickname,
               player2: this.nickname,
               thisPlayer: "player2",
               cardsPlacement: cardsPlacement as number[],
@@ -91,7 +94,7 @@ export class Room extends Phaser.Scene {
         }
       }
 
-      set(ref(database, `game/table/${this.nodeId}/player1`), this.nickname)
+      set(ref(database, `game/table/${this.nodeId}/player1/nickname`), this.nickname)
         .then(this.#createInitialState.bind(this));
     })
   }
@@ -101,21 +104,24 @@ export class Room extends Phaser.Scene {
     const nodeRef = ref(database, "game/table/" + this.nodeId);
 
     const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));
-    onValue(nodeRef, snapshot => {
-      const obj = snapshot.val();
-      set(nodeRef, {
-        ...obj,
-        turn: "player1",
-        player1Score: 0,
-        player2Score: 0,
-        cardFlip: {
-          location: -1,
-          by: "player1"
-        },
-        timeBarReset: -1,
-        cardsPlacement
-      });
-    })();
+    set(nodeRef, {
+      turn: "player1",
+      player1: {
+        nickname: this.nickname,
+        score: 0,
+        ready: false
+      },
+      player2: {
+        score: 0,
+        ready: false
+      },
+      cardFlip: {
+        location: -1,
+        by: "player1"
+      },
+      timeBarReset: -1,
+      cardsPlacement
+    });
   }
 
   #checkState(nodeId: string) {
@@ -127,8 +133,8 @@ export class Room extends Phaser.Scene {
         const obj = snapshot.val()
 
         const keysToCheck = [
-          "turn", "player1", "player2", "player1Score", "timeBarReset",
-          "player2Score", "cardFlip", "cardsPlacement",
+          "turn", "player1", "player2", "timeBarReset",
+          "cardFlip", "cardsPlacement",
         ];
         if (keysToCheck.some(it => !(it in obj))) rej("invalid state")
         res(parseSerializedArray(obj["cardsPlacement"]));

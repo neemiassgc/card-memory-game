@@ -20,7 +20,7 @@ export class SinglePlayer extends GameDynamic {
     );
     this.#difficulty = difficulty;
     this.#scene = scene;
-    this.#maxTries = difficulty === "EASY" ? 20 : 60; 
+    this.#maxTries = difficulty === "EASY" ? 20 : 60;
 
     this.#createTextDisplay();
     this.#initAnimation();
@@ -78,6 +78,6 @@ export class SinglePlayer extends GameDynamic {
       ease: "Bounce"
     }
 
-    super.initAnimation({ tweenObject: displayTextTween });
+    super.initAnimation({ tweenObject: displayTextTween, onComplete: () => super.setInteractive(true) });
   }
 }

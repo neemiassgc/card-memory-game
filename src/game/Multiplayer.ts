@@ -126,7 +126,7 @@ export class Multiplayer extends GameDynamic {
     if (this.#localPlayer !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
     set(
-      ref(db, `game/table/${this.#nodeId}/${this.#nextTurn+"Score"}`),
+      ref(db, `game/table/${this.#nodeId}/${this.#nextTurn}/score`),
       (this.#nextTurn === "player1" ? this.#score[0] : this.#score[1]) + 1
     )
     this.#resetTimeBar();
@@ -171,12 +171,12 @@ export class Multiplayer extends GameDynamic {
   #update() {
     const database = getFirebaseDatabase();
     
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player1Score`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), snapshot => {
       this.#score[0] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
     }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player2Score`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player2/score`), snapshot => {
       this.#score[1] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
