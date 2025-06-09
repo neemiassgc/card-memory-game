@@ -2,6 +2,7 @@ import { Loading } from "../Loading";
 import { onValue, ref, set } from "@firebase/database";
 import { getFirebaseDatabase } from "../temp"
 import { generateArrayOfNumbers, parseSerializedArray, serialize } from "@/tools";
+import { Button } from "../components/Button";
 
 interface GameProps {
   [prop: string]: string | number | number[],
@@ -17,6 +18,7 @@ interface GameProps {
 export class Room extends Phaser.Scene {
 
   nickname: string;
+  nodeId: string = Phaser.Utils.String.UUID();
 
   constructor() {
     super("Room")
@@ -28,6 +30,10 @@ export class Room extends Phaser.Scene {
     this.createDisplayText(this.nickname, "up");
 
     new Loading(this);
+    new Button(this, 320, 0, "anticlockwise-rotation").onConfirmation(() => {
+      const nodeRef = ref(getFirebaseDatabase(), "game/table/" + this.nodeId);
+      set(nodeRef, undefined)
+    });
 
     this.#createRealtimeDatabase();
   }
@@ -40,7 +46,7 @@ export class Room extends Phaser.Scene {
     else displayText.setY(this.scale.height / 2 + displayText.height * 0.5);
   }
 
-  async #createRealtimeDatabase() {
+  #createRealtimeDatabase() {
     const database = getFirebaseDatabase();
     const dbRef = ref(database, "game/table");
 
@@ -48,42 +54,53 @@ export class Room extends Phaser.Scene {
     onValue(dbRef, snapshot => {
       if (block) return;
 
-      const table = snapshot.val() as GameProps[];
+      const table = snapshot.val();
 
-      for (const node of table) {
-        if (node.player1 === this.nickname) {
-          if (node.player2) {
-            this.createDisplayText(node.player2, "down");
+      for (const node in table) {
+        if (table[node].player1 === this.nickname) {
+          if (table[node].player2) {
+            this.createDisplayText(table[node].player2, "down");
             block = true;
-            this.#startGame(node.player1, node.player2, "player1", parseSerializedArray(node.cardsPlacement));
-            return;
+            this.#startGame({
+              player1: table[node].player1,
+              player2: table[node].player2,
+              thisPlayer: "player1",
+              cardsPlacement:  parseSerializedArray(table[node].cardsPlacement),
+              nodeId: node
+            });
           }
-          else return;
+          return;
         }
       }
 
-      for (let i = 0; i < table.length; i++) {
-        if (table[i].player1 && !table[i].player2) {
-          this.createDisplayText(table[i].player1, "down");
+      for (const node in table) {
+        if (table[node].player1 && !table[node].player2) {
+          this.createDisplayText(table[node].player1, "down");
           block = true;
-          set(ref(database, "game/table/"+i), {...table[i], "player2": this.nickname})
-            .then(() => this.#checkState(i))
-            .then((cardPlacement) => this.#startGame(table[i].player1, this.nickname, "player2", cardPlacement as number[]))
+          set(ref(database, `game/table/${node}/player2`), this.nickname)
+            .then(() => this.#checkState(node))
+            .then(cardsPlacement => this.#startGame({
+              player1: table[node].player1,
+              player2: this.nickname,
+              thisPlayer: "player2",
+              cardsPlacement: cardsPlacement as number[],
+              nodeId: node
+            }))
             .catch(console.log);
           return;
         }
       }
 
-      set(dbRef, [...table, {"player1": this.nickname}])
-        .then(() => this.#createInitialState(table.length));
+      set(ref(database, `game/table/${this.nodeId}/player1`), this.nickname)
+        .then(this.#createInitialState.bind(this));
     })
   }
 
-  #createInitialState(indexNode: number) {
+  #createInitialState() {
     const database = getFirebaseDatabase();
-    const nodeRef = ref(database, "game/table/" + indexNode);
+    const nodeRef = ref(database, "game/table/" + this.nodeId);
 
-    const cardsPlacement = serialize(generateArrayOfNumbers(40));    
+    const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));
     onValue(nodeRef, snapshot => {
       const obj = snapshot.val();
       set(nodeRef, {
@@ -101,32 +118,32 @@ export class Room extends Phaser.Scene {
     })();
   }
 
-  #checkState(indexNode: number) {
+  #checkState(nodeId: string) {
     return new Promise<number[] | string>((res, rej) => {
       const database = getFirebaseDatabase();
-      const nodeRef = ref(database, "game/table/" + indexNode);
+      const nodeRef = ref(database, "game/table/" + nodeId);
 
       onValue(nodeRef, snapshot => {
-        const obj = snapshot.val() as GameProps;
-        const remoteProps = Object.keys(obj);
+        const obj = snapshot.val()
 
         const keysToCheck = [
           "turn", "player1", "player2", "player1Score", "timeBarReset",
           "player2Score", "cardFlip", "cardsPlacement",
         ];
-        for (const key of keysToCheck) {
-          if (!remoteProps.includes(key)) rej("Invalid state");
-        }
+        if (keysToCheck.some(it => !(it in obj))) rej("invalid state")
         res(parseSerializedArray(obj["cardsPlacement"]));
       })();
     })
   }
 
-  #startGame(player1: string, player2: string, thisPlayer: string, cardsPlacement: number[]) {
+  #startGame(data: {
+    player1: string, player2: string, thisPlayer: string,
+    cardsPlacement: number[], nodeId: string
+  }) {
     setTimeout(() => {
       this.scene.start("Gameplay", {
         gameMode: "Multiplayer",
-        data: { player1, player2, thisPlayer, cardsPlacement }
+        data
       })
     }, 1000)
   }

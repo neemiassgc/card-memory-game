@@ -3,15 +3,6 @@ import { GameDynamic } from "./GameDynamic";
 import { getFirebaseDatabase } from "./temp";
 import { onValue, ref, set, Unsubscribe } from "firebase/database";
 
-interface GameData {
-  player1: string,
-  player2: string,
-  player1Score: number,
-  player2Score: number,
-  turn: TPlayer,
-  flipCard: number,
-}
-
 export class Multiplayer extends GameDynamic {
 
   #scene;
@@ -28,15 +19,16 @@ export class Multiplayer extends GameDynamic {
   #screenW;
   #screenH;
   #localPlayer: TPlayer;
-  #nodeIndex = 0;
   #nextTurn: TPlayer = "player1";
   #listeners: Unsubscribe[] = [];
+  #nodeId: string
 
   constructor(
     scene: Phaser.Scene,
     playerNames: { player1: string, player2: string },
     localPlayer: TPlayer,
-    arrangementKeys: number[]
+    arrangementKeys: number[],
+    nodeId: string
   ) {
     super(scene, "lg", arrangementKeys, localPlayer);
 
@@ -46,11 +38,14 @@ export class Multiplayer extends GameDynamic {
     this.#player1 = playerNames.player1;
     this.#player2 = playerNames.player2;
     this.#localPlayer = localPlayer;
+    this.#nodeId = nodeId;
+
+    console.log(this.#nodeId);
 
     this.#createTextDisplay();
     this.#createTimeBar();
     this.#initAnimation();
-    this.#initialSetup();
+    this.#update();
   }
 
   #createTextDisplay() {
@@ -122,7 +117,7 @@ export class Multiplayer extends GameDynamic {
   onFailure(by: TPlayer) {
     if (by !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
-    const nodeRef = `game/table/${this.#nodeIndex}/turn`;
+    const nodeRef = `game/table/${this.#nodeId}/turn`;
     set(ref(db, nodeRef), `player${by === "player1" ? 2 : 1}`)
     this.#resetTimeBar();
   }
@@ -131,7 +126,7 @@ export class Multiplayer extends GameDynamic {
     if (this.#localPlayer !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
     set(
-      ref(db, `game/table/${this.#nodeIndex}/${this.#nextTurn+"Score"}`),
+      ref(db, `game/table/${this.#nodeId}/${this.#nextTurn+"Score"}`),
       (this.#nextTurn === "player1" ? this.#score[0] : this.#score[1]) + 1
     )
     this.#resetTimeBar();
@@ -140,7 +135,7 @@ export class Multiplayer extends GameDynamic {
   dispatchCardFlip(locationIndex: number, by: TPlayer): void {
     if (by !== this.#nextTurn) return;
     const db = getFirebaseDatabase();
-    const nodeRef = ref(db, `game/table/${this.#nodeIndex}/cardFlip`);
+    const nodeRef = ref(db, `game/table/${this.#nodeId}/cardFlip`);
     set(nodeRef, { location: locationIndex, by });
   }
   
@@ -170,51 +165,35 @@ export class Multiplayer extends GameDynamic {
   }
 
   #resetTimeBar() {
-    set(ref(getFirebaseDatabase(), `game/table/${this.#nodeIndex}/timeBarReset`), this.#timeBarIncrement++);
-  }
-
-  #initialSetup() {
-    const database = getFirebaseDatabase();
-    const tableRef = ref(database, "game/table");
-    onValue(tableRef, snapshot => {
-      const nodes = snapshot.val() as {[prop: string]: string | number}[];
-      for (let i = 0; i < nodes.length; i++) {
-        if (nodes[i].player1 === this.#player1) {
-          this.#nodeIndex = i;
-          return;
-        }
-      }
-    })();
-    
-    this.#update()
+    set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/timeBarReset`), this.#timeBarIncrement++);
   }
   
   #update() {
     const database = getFirebaseDatabase();
     
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeIndex}/player1Score`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player1Score`), snapshot => {
       this.#score[0] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
     }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeIndex}/player2Score`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player2Score`), snapshot => {
       this.#score[1] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
     }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeIndex}/turn`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/turn`), snapshot => {
       this.#nextTurn = snapshot.val();
 
       if (this.#nextTurn === "player1")
         this.#displayPlayer1Turn();
       else this.#displayPlayer2Turn();
     }))
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeIndex}/cardFlip`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/cardFlip`), snapshot => {
       const cardFlip = snapshot.val();
       if (cardFlip.location !== -1)
         this.flipCard(cardFlip.location, cardFlip.by);
     }))
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeIndex}/timeBarReset`), snapshot => {
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/timeBarReset`), snapshot => {
       if (snapshot.val() !== -1) {
         super.setInteractive(true);
         this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
@@ -255,6 +234,6 @@ export class Multiplayer extends GameDynamic {
 
   removeGameState() {
     const database = getFirebaseDatabase();
-    set(ref(database, `game/table/${this.#nodeIndex}`), null);
+    set(ref(database, `game/table/${this.#nodeId}`), null);
   }
 }

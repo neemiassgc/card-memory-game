@@ -1,6 +1,7 @@
 import { colors, TPlayer } from '../tools';
 import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
+import { Button } from './components/Button';
 
 interface CardInfo {
   cardLocationIndex: number,
@@ -234,6 +235,7 @@ export class GameDynamic {
         this.#interactive = true;
         if (integrationObject.onComplete)
           integrationObject.onComplete();
+        new Button(this.#scene, this.#gridSize === "lg" ? 60 : 220, 0, "anticlockwise-rotation");
       },
     })
   }
