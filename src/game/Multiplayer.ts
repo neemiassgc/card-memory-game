@@ -159,7 +159,12 @@ export class Multiplayer extends GameDynamic {
         x: this.#screenW / 2,
         duration: 500,
         ease: "bounce",
-        onComplete: () => super.initAnimation({ onComplete: () => this.#resetTimeBar() })
+        onComplete: () => super.initAnimation({
+          onComplete: () => set(
+            ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/${this.#localPlayer}/ready`),
+            true
+          )
+        })
       }],
     })
   }
@@ -199,6 +204,14 @@ export class Multiplayer extends GameDynamic {
         this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
       }
     }));
+    const startWhenReadyListener = onValue(ref(database, `game/table/${this.#nodeId}`), snapshot => {
+      const obj = snapshot.val();
+      if (obj.player1.ready && obj.player2.ready) {
+        super.setInteractive(true);
+        this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
+        startWhenReadyListener();
+      }
+    });
   }
 
   #displayPlayer2Turn() {

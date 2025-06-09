@@ -232,7 +232,6 @@ export class GameDynamic {
     this.#scene.add.tweenchain({
       tweens: [...tweens],
       onComplete: () => {
-        this.#interactive = true;
         if (integrationObject.onComplete)
           integrationObject.onComplete();
         new Button(this.#scene, this.#gridSize === "lg" ? 60 : 220, 0, "anticlockwise-rotation");
