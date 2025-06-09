@@ -56,9 +56,17 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame
             setBackgroundColor(color);
         })
         EventBus.on("open-modal", () => openModal());
+
+        EventBus.on("exit", (yes: () => void, no?: () => void) => {
+            const confirmation = window.confirm("Confirm");
+            if (confirmation) yes();
+            else if (no) no();
+        })
+        
         return () => {
             EventBus.off("change-background-color");
             EventBus.off("open-modal");
+            EventBus.off("exit");
         }
     }, [ref]);
 
