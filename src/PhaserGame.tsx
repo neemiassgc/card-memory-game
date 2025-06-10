@@ -1,6 +1,7 @@
-import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import StartGame from './game/main';
 import { EventBus } from './game/EventBus';
+import { use } from 'matter';
 
 export interface IRefPhaserGame
 {
@@ -70,8 +71,25 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame
         }
     }, [ref]);
 
+    useVisibilityApi();
+
     return (
         <div id="game-container"></div>
     );
 
 });
+
+function useVisibilityApi() {
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            EventBus.emit("visibility-change", document.hidden);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+}

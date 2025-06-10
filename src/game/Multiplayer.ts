@@ -2,6 +2,7 @@ import { colors, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { getFirebaseDatabase } from "./temp";
 import { onValue, ref, set, Unsubscribe } from "firebase/database";
+import { EventBus } from "./EventBus";
 
 export class Multiplayer extends GameDynamic {
 
@@ -40,7 +41,9 @@ export class Multiplayer extends GameDynamic {
     this.#localPlayer = localPlayer;
     this.#nodeId = nodeId;
 
-    console.log(this.#nodeId);
+    EventBus.on("visibility-change", (value: boolean) => {
+      set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/paused`), value)
+    })
 
     this.#createTextDisplay();
     this.#createTimeBar();
@@ -176,6 +179,12 @@ export class Multiplayer extends GameDynamic {
   #update() {
     const database = getFirebaseDatabase();
     
+    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/paused`), snapshot => {
+      const paused = snapshot.val() as boolean;
+      this.#scene.cameras.main.setAlpha(paused ? 0.4 : 1)
+      if (paused) this.#scene.scene.pause();
+      else this.#scene.scene.resume();
+    }));
     this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), snapshot => {
       this.#score[0] = snapshot.val();
       this.#drawScoreDisplay();

@@ -119,6 +119,7 @@ export class Room extends Phaser.Scene {
         location: -1,
         by: "player1"
       },
+      paused: false,
       timeBarReset: -1,
       cardsPlacement
     });
@@ -134,7 +135,7 @@ export class Room extends Phaser.Scene {
 
         const keysToCheck = [
           "turn", "player1", "player2", "timeBarReset",
-          "cardFlip", "cardsPlacement",
+          "cardFlip", "cardsPlacement", "paused"
         ];
         if (keysToCheck.some(it => !(it in obj))) rej("invalid state")
         res(parseSerializedArray(obj["cardsPlacement"]));
