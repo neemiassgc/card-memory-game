@@ -234,7 +234,11 @@ export class GameDynamic {
       onComplete: () => {
         if (integrationObject.onComplete)
           integrationObject.onComplete();
-        new Button(this.#scene, this.#gridSize === "lg" ? 60 : 220, 0, "anticlockwise-rotation");
+        new Button({
+          scene: this.#scene,
+          x: this.#gridSize === "lg" ? 60 : 220,
+          y: 0, key: "anticlockwise-rotation"
+        });
       },
     })
   }
