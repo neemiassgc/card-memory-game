@@ -29,9 +29,10 @@ export class Room extends Phaser.Scene {
       scene: this,
       x: 320,
       y: 0, key: "anticlockwise-rotation",
-      callBack: () => {
+      onClick: () => {
         off(tableRef, "value")
         set(ref(database, `game/table/${this.nodeId}`), null)
+          .then(() => this.scene.start("Menu"))
       }
     });
 
@@ -117,6 +118,7 @@ export class Room extends Phaser.Scene {
       },
       paused: false,
       timeBarReset: -1,
+      exit: false,
       cardsPlacement
     });
   }
@@ -130,7 +132,7 @@ export class Room extends Phaser.Scene {
 
         const keysToCheck = [
           "turn", "player1", "player2", "timeBarReset",
-          "cardFlip", "cardsPlacement", "paused"
+          "cardFlip", "cardsPlacement", "paused", "exit"
         ];
         if (keysToCheck.some(it => !(it in obj))) rej("invalid state")
         res(parseSerializedArray(obj["cardsPlacement"]));

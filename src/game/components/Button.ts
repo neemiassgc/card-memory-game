@@ -8,9 +8,9 @@ export class Button {
     x: number,
     y: number,
     key: string,
-    callBack?: () => void
+    onClick?: () => void
   }) {
-    const { scene, x, y, key, callBack = () => {} } = initData;
+    const { scene, x, y, key, onClick = () => {} } = initData;
 
     const circle = scene.add.circle(x, scene.scale.height / 2 + y, 20, colors["dark-first"].number as number).setOrigin(0.5, 0.5);
     const icon = scene.add.image(x, scene.scale.height / 2 + y, key)
@@ -22,8 +22,7 @@ export class Button {
 
     const click = () => {
       EventBus.emit("exit", () => {
-        callBack();
-        scene.scene.start("Menu")
+        onClick();
       })
     }
 
