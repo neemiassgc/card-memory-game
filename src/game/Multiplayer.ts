@@ -194,17 +194,17 @@ export class Multiplayer extends GameDynamic {
       else this.#scene.scene.resume();
     })
 
-    onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), snapshot => {
-      this.#score[0] = snapshot.val();
-      this.#drawScoreDisplay();
-      this.#checkGameEnd();
-    })
+    const setScoreFromSnapshot = (index: number) => {
+      return (snapshot: DataSnapshot) => {
+        this.#score[index] = snapshot.val();
+        this.#drawScoreDisplay();
+        this.#checkGameEnd();
+      }
+    }
 
-    onValue(ref(database, `game/table/${this.#nodeId}/player2/score`), snapshot => {
-      this.#score[1] = snapshot.val();
-      this.#drawScoreDisplay();
-      this.#checkGameEnd();
-    })
+    onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), setScoreFromSnapshot(0))
+    
+    onValue(ref(database, `game/table/${this.#nodeId}/player2/score`), setScoreFromSnapshot(1))
 
     onValue(ref(database, `game/table/${this.#nodeId}/turn`), snapshot => {
       this.#nextTurn = snapshot.val();
