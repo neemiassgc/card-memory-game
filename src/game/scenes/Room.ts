@@ -1,5 +1,5 @@
 import { Loading } from "../Loading";
-import { Database, DatabaseReference, off, onValue, ref, set } from "@firebase/database";
+import { Database, DatabaseReference, off, onValue, ref, set, Unsubscribe } from "@firebase/database";
 import { getFirebaseDatabase } from "../temp"
 import { generateArrayOfNumbers, parseSerializedArray, serialize } from "@/tools";
 import { Button } from "../components/Button";
@@ -70,7 +70,6 @@ export class Room extends Phaser.Scene {
           return;
         }
       }
-
 
       // verify to join as player2
       for (const node in table) {
@@ -144,6 +143,7 @@ export class Room extends Phaser.Scene {
     player1: string, player2: string, thisPlayer: string,
     cardsPlacement: number[], nodeId: string
   }) {
+    off(ref(getFirebaseDatabase(), "game/table"), "value");
     setTimeout(() => {
       this.scene.start("Gameplay", {
         gameMode: "Multiplayer",

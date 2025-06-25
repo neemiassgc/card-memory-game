@@ -109,7 +109,7 @@ export class Menu extends Scene {
   }
 
   handleMultiplayer() {
-    EventBus.on("set-nickname", (nickname: string) => {
+    EventBus.once("set-nickname", (nickname: string) => {
       this.scene.start("Room", { nickname })
     })
     EventBus.emit("open-modal");

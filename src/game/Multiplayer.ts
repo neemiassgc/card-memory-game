@@ -1,8 +1,9 @@
 import { colors, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { getFirebaseDatabase } from "./temp";
-import { onValue, ref, set, Unsubscribe } from "firebase/database";
+import { off, onValue, ref, set } from "firebase/database";
 import { EventBus } from "./EventBus";
+import { Button } from "./components/Button";
 
 export class Multiplayer extends GameDynamic {
 
@@ -21,7 +22,6 @@ export class Multiplayer extends GameDynamic {
   #screenH;
   #localPlayer: TPlayer;
   #nextTurn: TPlayer = "player1";
-  #listeners: Unsubscribe[] = [];
   #nodeId: string
 
   constructor(
@@ -163,10 +163,18 @@ export class Multiplayer extends GameDynamic {
         duration: 500,
         ease: "bounce",
         onComplete: () => super.initAnimation({
-          onComplete: () => set(
-            ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/${this.#localPlayer}/ready`),
-            true
-          )
+          onComplete: () => {
+            set(ref(
+              getFirebaseDatabase(),
+              `game/table/${this.#nodeId}/${this.#localPlayer}/ready`
+            ), true)
+
+            new Button({
+              scene: this.#scene, x: 60,
+              y: 0, key: "anticlockwise-rotation",
+              onClick: () => set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/exit`), true)
+            });
+          }
         })
       }],
     })
@@ -179,46 +187,64 @@ export class Multiplayer extends GameDynamic {
   #update() {
     const database = getFirebaseDatabase();
     
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/paused`), snapshot => {
+    onValue(ref(database, `game/table/${this.#nodeId}/paused`), snapshot => {
       const paused = snapshot.val() as boolean;
       this.#scene.cameras.main.setAlpha(paused ? 0.4 : 1)
       if (paused) this.#scene.scene.pause();
       else this.#scene.scene.resume();
-    }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), snapshot => {
+    })
+
+    onValue(ref(database, `game/table/${this.#nodeId}/player1/score`), snapshot => {
       this.#score[0] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
-    }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/player2/score`), snapshot => {
+    })
+
+    onValue(ref(database, `game/table/${this.#nodeId}/player2/score`), snapshot => {
       this.#score[1] = snapshot.val();
       this.#drawScoreDisplay();
       this.#checkGameEnd();
-    }));
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/turn`), snapshot => {
+    })
+
+    onValue(ref(database, `game/table/${this.#nodeId}/turn`), snapshot => {
       this.#nextTurn = snapshot.val();
 
       if (this.#nextTurn === "player1")
         this.#displayPlayer1Turn();
       else this.#displayPlayer2Turn();
-    }))
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/cardFlip`), snapshot => {
+    })
+
+    onValue(ref(database, `game/table/${this.#nodeId}/cardFlip`), snapshot => {
       const cardFlip = snapshot.val();
       if (cardFlip.location !== -1)
         this.flipCard(cardFlip.location, cardFlip.by);
-    }))
-    this.#listeners.push(onValue(ref(database, `game/table/${this.#nodeId}/timeBarReset`), snapshot => {
+    })
+
+    onValue(ref(database, `game/table/${this.#nodeId}/timeBarReset`), snapshot => {
       if (snapshot.val() !== -1) {
         super.setInteractive(true);
         this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
       }
-    }));
+    });
+
     const startWhenReadyListener = onValue(ref(database, `game/table/${this.#nodeId}`), snapshot => {
       const obj = snapshot.val();
       if (obj.player1.ready && obj.player2.ready) {
         super.setInteractive(true);
         this.#timeBarRunner[this.#timeBarRunner.isPaused() ? "play" : "restart"]()
         startWhenReadyListener();
+      }
+    });
+
+    onValue(ref(database, `game/table/${this.#nodeId}/exit`), snapshot => {
+      const exit = snapshot.val() as boolean;
+      if (exit) {
+        this.#clearListeners();
+        set(ref(database, `game/table/${this.#nodeId}`), null)
+          .then(() => {
+            this.#scene.scene.start("Menu");
+          })
+          .catch(console.log)
       }
     });
   }
@@ -243,19 +269,21 @@ export class Multiplayer extends GameDynamic {
 
   #checkGameEnd() {
     if (this.#score[0] + this.#score[1] === 20) {
-      this.#listeners.forEach(it => it());
-      this.removeGameState();
-
-      this.#scene.scene.start("GameEnd", {
-        backgroundColorName: "fourth", winner: true,
-        winnerPlayerName: this.#score[0] > this.#score[1] ? this.#player1 : this.#player2
-      });
-      return;
+      this.#clearListeners();
+      const database = getFirebaseDatabase();
+      set(ref(database, `game/table/${this.#nodeId}`), null)
+        .then(() => {
+          this.#scene.scene.start("GameEnd", {
+            backgroundColorName: "fourth", winner: true,
+            winnerPlayerName: this.#score[0] > this.#score[1] ? this.#player1 : this.#player2
+          });
+        })
     }
   }
 
-  removeGameState() {
-    const database = getFirebaseDatabase();
-    set(ref(database, `game/table/${this.#nodeId}`), null);
+  #clearListeners() {
+    const keys = ["paused", "player1/score", "player2/score", "turn", "cardFlip", "timeBarReset", "exit"];
+    keys.forEach(key => off(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/${key}`), "value"));
+    EventBus.off("visibility-change");
   }
 }
