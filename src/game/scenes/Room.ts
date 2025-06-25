@@ -29,7 +29,7 @@ export class Room extends Phaser.Scene {
       scene: this,
       x: 320,
       y: 0, key: "anticlockwise-rotation",
-      onClick: () => {
+      onConfirmation: () => {
         off(tableRef, "value")
         set(ref(database, `game/table/${this.nodeId}`), null)
           .then(() => this.scene.start("Menu"))
