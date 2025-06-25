@@ -1,5 +1,6 @@
 import { generateArrayOfNumbers, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
+import { Button } from "./components/Button";
 
 type Difficulty = "EASY" | "HARD";
 
@@ -78,6 +79,16 @@ export class SinglePlayer extends GameDynamic {
       ease: "Bounce"
     }
 
-    super.initAnimation({ tweenObject: displayTextTween, onComplete: () => super.setInteractive(true) });
+    super.initAnimation({
+      tweenObject: displayTextTween,
+      onComplete: () => {
+        super.setInteractive(true);
+        new Button({
+          scene: this.#scene, x: this.#difficulty === "HARD" ? 60 : 220,
+          y: 0, key: "anticlockwise-rotation",
+          onConfirmation: () => this.#scene.scene.start("Menu")
+        });
+      }
+    });
   }
 }
