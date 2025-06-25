@@ -1,7 +1,7 @@
 import { colors, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { getFirebaseDatabase } from "./temp";
-import { off, onValue, ref, set } from "firebase/database";
+import { DataSnapshot, off, onValue, ref, set } from "firebase/database";
 import { EventBus } from "./EventBus";
 import { Button } from "./components/Button";
 
@@ -41,9 +41,7 @@ export class Multiplayer extends GameDynamic {
     this.#localPlayer = localPlayer;
     this.#nodeId = nodeId;
 
-    EventBus.on("visibility-change", (value: boolean) => {
-      set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/paused`), value)
-    })
+    EventBus.on("visibility-change", this.#pauseGame.bind(this))
 
     this.#createTextDisplay();
     this.#createTimeBar();
@@ -172,7 +170,9 @@ export class Multiplayer extends GameDynamic {
             new Button({
               scene: this.#scene, x: 60,
               y: 0, key: "anticlockwise-rotation",
-              onClick: () => set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/exit`), true)
+              onConfirmation: () => set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/exit`), true),
+              onClick: this.#pauseGame.bind(this),
+              onDecline: this.#pauseGame.bind(this, false)
             });
           }
         })
@@ -285,5 +285,9 @@ export class Multiplayer extends GameDynamic {
     const keys = ["paused", "player1/score", "player2/score", "turn", "cardFlip", "timeBarReset", "exit"];
     keys.forEach(key => off(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/${key}`), "value"));
     EventBus.off("visibility-change");
+  }
+
+  #pauseGame(value: boolean = true) {
+    set(ref(getFirebaseDatabase(), `game/table/${this.#nodeId}/paused`), value);
   }
 }

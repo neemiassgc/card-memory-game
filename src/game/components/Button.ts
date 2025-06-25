@@ -8,9 +8,12 @@ export class Button {
     x: number,
     y: number,
     key: string,
-    onClick?: () => void
+    onConfirmation?: () => void,
+    onDecline?: () => void,
+    onClick?: () => void,
   }) {
-    const { scene, x, y, key, onClick = () => {} } = initData;
+    const empty = () => {};
+    const { scene, x, y, key, onConfirmation = empty, onClick = empty, onDecline = empty } = initData;
 
     const circle = scene.add.circle(x, scene.scale.height / 2 + y, 20, colors["dark-first"].number as number).setOrigin(0.5, 0.5);
     const icon = scene.add.image(x, scene.scale.height / 2 + y, key)
@@ -21,9 +24,8 @@ export class Button {
     icon.setInteractive();
 
     const click = () => {
-      EventBus.emit("exit", () => {
-        onClick();
-      })
+      onClick();
+      EventBus.emit("exit", onConfirmation, onDecline);
     }
 
     circle.on("pointerup", click);
