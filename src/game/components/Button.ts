@@ -30,5 +30,7 @@ export class Button {
 
     circle.on("pointerup", click);
     icon.on("pointerup", click);
+
+    scene.events.on("set-bg", (color: string) => circle.setFillStyle(colors[`dark-${color}`].number as number))
   }
 }

@@ -99,16 +99,19 @@ export class Multiplayer extends GameDynamic {
     switch(matchedPairs) {
       case 5: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-second"].number as number)
+        this.#scene.events.emit("set-bg", "second")
         super.setColor("second");
         break;
       }
       case 10: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-third"].number as number)
+        this.#scene.events.emit("set-bg", "third")
         super.setColor("third");
         break;
       }
       case 15: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-fourth"].number as number)
+        this.#scene.events.emit("set-bg", "fourth")
         super.setColor("fourth");
         break;
       }

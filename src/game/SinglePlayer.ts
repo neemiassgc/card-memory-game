@@ -43,14 +43,17 @@ export class SinglePlayer extends GameDynamic {
     switch(matchedPairs) {
       case this.#difficulty === "EASY" ? 3 : 5: {
         super.setColor("second");
+        this.#scene.events.emit("set-bg", "second")
         break;
       }
       case this.#difficulty === "EASY" ? 6 : 10: {
         super.setColor("third");
+        this.#scene.events.emit("set-bg", "third")
         break;
       }
       case 15: {
         super.setColor("fourth");
+        this.#scene.events.emit("set-bg", "fourth")
         break;
       }
     }
