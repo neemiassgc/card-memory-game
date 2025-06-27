@@ -1,6 +1,6 @@
 import { Loading } from "../Loading";
-import { Database, DatabaseReference, off, onValue, ref, set, Unsubscribe } from "@firebase/database";
-import { getFirebaseDatabase } from "../temp"
+import { DatabaseReference, off, onValue, ref, set } from "@firebase/database";
+import { firebaseDatabase } from "../firebase"
 import { generateArrayOfNumbers, parseSerializedArray, serialize } from "@/tools";
 import { Button } from "../components/Button";
 
@@ -20,10 +20,9 @@ export class Room extends Phaser.Scene {
 
     new Loading(this);
 
-    const database = getFirebaseDatabase();
-    const tableRef = ref(database, "game/table");
+    const tableRef = ref(firebaseDatabase, "game/table");
 
-    this.#createRealtimeDatabase(database, tableRef);
+    this.#createRealtimeDatabase(tableRef);
 
     new Button({
       scene: this,
@@ -31,7 +30,7 @@ export class Room extends Phaser.Scene {
       y: 0, key: "anticlockwise-rotation",
       onConfirmation: () => {
         off(tableRef, "value")
-        set(ref(database, `game/table/${this.nodeId}`), null)
+        set(ref(firebaseDatabase, `game/table/${this.nodeId}`), null)
           .then(() => this.scene.start("Menu"))
       }
     });
@@ -46,7 +45,7 @@ export class Room extends Phaser.Scene {
     else displayText.setY(this.scale.height / 2 + displayText.height * 0.5);
   }
 
-  #createRealtimeDatabase(database: Database, tableRef: DatabaseReference) {
+  #createRealtimeDatabase(tableRef: DatabaseReference) {
     let block = false;
     onValue(tableRef, snapshot => {
       if (block) return;
@@ -76,8 +75,8 @@ export class Room extends Phaser.Scene {
         if (table[node].player1?.nickname && !table[node].player2?.nickname) {
           this.createDisplayText(table[node].player1.nickname, "down");
           block = true;
-          set(ref(database, `game/table/${node}/player2/nickname`), this.nickname)
-            .then(() => this.#checkState(database, node))
+          set(ref(firebaseDatabase, `game/table/${node}/player2/nickname`), this.nickname)
+            .then(() => this.#checkState(node))
             .then(cardsPlacement => this.#startGame({
               player1: table[node].player1.nickname,
               player2: this.nickname,
@@ -90,14 +89,14 @@ export class Room extends Phaser.Scene {
         }
       }
 
-      set(ref(database, `game/table/${this.nodeId}/player1/nickname`), this.nickname)
-        .then(() => this.#createInitialState(database))
+      set(ref(firebaseDatabase, `game/table/${this.nodeId}/player1/nickname`), this.nickname)
+        .then(() => this.#createInitialState())
         .catch(console.log);
     })
   }
 
-  #createInitialState(database: Database) {
-    const nodeRef = ref(database, "game/table/" + this.nodeId);
+  #createInitialState() {
+    const nodeRef = ref(firebaseDatabase, "game/table/" + this.nodeId);
 
     const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));
     set(nodeRef, {
@@ -122,9 +121,9 @@ export class Room extends Phaser.Scene {
     });
   }
 
-  #checkState(database: Database, nodeId: string) {
+  #checkState(nodeId: string) {
     return new Promise<number[] | string>((res, rej) => {
-      const nodeRef = ref(database, "game/table/" + nodeId);
+      const nodeRef = ref(firebaseDatabase, "game/table/" + nodeId);
 
       onValue(nodeRef, snapshot => {
         const obj = snapshot.val()
@@ -143,7 +142,7 @@ export class Room extends Phaser.Scene {
     player1: string, player2: string, thisPlayer: string,
     cardsPlacement: number[], nodeId: string
   }) {
-    off(ref(getFirebaseDatabase(), "game/table"), "value");
+    off(ref(firebaseDatabase, "game/table"), "value");
     setTimeout(() => {
       this.scene.start("Gameplay", {
         gameMode: "Multiplayer",
