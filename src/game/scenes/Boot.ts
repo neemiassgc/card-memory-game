@@ -15,8 +15,7 @@ export class Boot extends Phaser.Scene {
     textDisplay.setX(screenWidth / 2 - textDisplay.width / 2);
     textDisplay.setY(screenHeight / 2 - textDisplay.height / 2 - 50);
     this.add.rectangle(screenWidth / 2, screenHeight / 2, barWidth, 32, colors["dark-first"].number as number);
-    const bar = this.add.rectangle(screenWidth / 2 - barWidth / 2, screenHeight / 2, 0, 32, 0xffff);
-
+    const bar = this.add.rectangle(screenWidth / 2 - barWidth / 2, screenHeight / 2, 0, 32, 0xffffff);
 
     this.load.on("progress", (progress: number) => {
       textDisplay.setText((progress * 100).toFixed(0)+"%");

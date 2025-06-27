@@ -141,20 +141,13 @@ export class Multiplayer extends GameDynamic {
   }
   
   #initAnimation() {
-    const textTweens: {
-      targets: Phaser.GameObjects.Text,
-      y: number,
-      duration: number,
-      ease: string
-    }[] = [this.#player1Display, this.#player2Display, this.#scoreDisplay].map(it => ({
-      targets: it,
-      y: 10,
-      duration: 500,
-      ease: "bounce",
-    }));
-
     this.#scene.add.tweenchain({
-      tweens: [...textTweens,
+      tweens: [{
+        targets: [this.#player1Display, this.#player2Display, this.#scoreDisplay],
+        y: 10,
+        duration: 500,
+        ease: "bounce",
+      },
       {
         targets: [this.#timeBar, this.#timeBarPlaceholder],
         x: this.#screenW / 2,
