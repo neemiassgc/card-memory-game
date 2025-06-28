@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { colors } from "../../tools";
+import { colors, toHexString } from "../../tools";
 import { EventBus } from "../EventBus";
 
 export class Menu extends Scene {
@@ -18,7 +18,7 @@ export class Menu extends Scene {
     this.screenHeight = this.scale.height;
 
     const textProps = {
-      color: colors["dark-first"].hex as string,
+      color: toHexString(colors["dark-first"]),
       fontSize: 78,
       stroke: "#000000",
       strokeThickness: 2
@@ -44,7 +44,7 @@ export class Menu extends Scene {
       this.hideOptions([this.singlePlayerOption, this.multiplayerOption], () => this.handleMultiplayer());
     })
 
-    EventBus.emit("change-background-color", colors["first"].hex as string);
+    EventBus.emit("change-background-color", toHexString(colors["first"]));
 
     EventBus.on("close-modal", this.revealOptions.bind(this, [this.singlePlayerOption, this.multiplayerOption]))
   }
@@ -124,7 +124,7 @@ export class Menu extends Scene {
       })
 
       gameObject.on("pointerout", () => {
-        gameObject.setColor(colors["dark-first"].hex as string);
+        gameObject.setColor(toHexString(colors["dark-first"]));
       })
     }
   }

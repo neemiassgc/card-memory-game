@@ -67,7 +67,7 @@ export class Multiplayer extends GameDynamic {
 
   #createTimeBar() {
     const barWidth = 620;
-    this.#timeBarPlaceholder = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, colors["dark-first"].number as number);
+    this.#timeBarPlaceholder = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, colors["dark-first"]);
     this.#timeBar = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, 0xffffff);
 
     let stop = false;
@@ -98,19 +98,19 @@ export class Multiplayer extends GameDynamic {
   setBackgroundColorByMatchedPairs(matchedPairs: number) {
     switch(matchedPairs) {
       case 5: {
-        this.#timeBarPlaceholder.setFillStyle(colors["dark-second"].number as number)
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-second"])
         this.#scene.events.emit("set-bg", "second")
         super.setColor("second");
         break;
       }
       case 10: {
-        this.#timeBarPlaceholder.setFillStyle(colors["dark-third"].number as number)
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-third"])
         this.#scene.events.emit("set-bg", "third")
         super.setColor("third");
         break;
       }
       case 15: {
-        this.#timeBarPlaceholder.setFillStyle(colors["dark-fourth"].number as number)
+        this.#timeBarPlaceholder.setFillStyle(colors["dark-fourth"])
         this.#scene.events.emit("set-bg", "fourth")
         super.setColor("fourth");
         break;

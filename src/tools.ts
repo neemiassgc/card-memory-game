@@ -1,36 +1,17 @@
-export const colors: {[prop: string]: {[prop: string]: number | string}} = {
-  "first": {
-    number: 0x009966,
-    hex: "#009966"
-  },
-  "dark-first": {
-    number: 0x006045,
-    hex: "#006045"
-  },
-  "second": {
-    number: 0xffba00,
-    hex: "#ffba00"
-  },
-  "dark-second": {
-    number: 0xd08700,
-    hex: "#d08700"
-  },
-  "third": {
-    number: 0x0084d1,
-    hex: "#0084d1"
-  },
-  "dark-third": {
-    number: 0x193cb8,
-    hex: "#193cb8"
-  },
-  "fourth": {
-    number: 0xe7000b,
-    hex: "#e7000b"
-  },
-  "dark-fourth": {
-    number: 0x9f0712,
-    hex: "#9f0712"
-  },
+export const colors: {[prop: string]: number } = {
+  "first": 0x009966,
+  "dark-first": 0x006045,
+  "second": 0xffba00,
+  "dark-second": 0xd08700,
+  "third": 0x0084d1,
+  "dark-third": 0x193cb8,
+  "fourth": 0xe7000b,
+  "dark-fourth": 0x9f0712,
+}
+
+export function toHexString(n: number) {
+  const hex = n.toString(16);
+  return "#" + "0".repeat(6 - hex.length) + hex;
 }
 
 export function generateArrayOfNumbers(size: number): number[] {

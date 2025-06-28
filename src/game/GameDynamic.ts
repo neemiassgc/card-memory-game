@@ -1,4 +1,4 @@
-import { colors, TPlayer } from '../tools';
+import { colors, toHexString, TPlayer } from '../tools';
 import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
 
@@ -35,7 +35,7 @@ export class GameDynamic {
 
   constructor(scene: Phaser.Scene, gridSize: "sm" | "lg", arrangementKeys: number[], localPlayer: TPlayer) {
     this.#scene = scene;
-    this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"].number as number)
+    this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"])
     this.#gridSize = gridSize;
     this.#quantityOfCards = gridSize === "sm" ? 20 : 40;
 
@@ -43,7 +43,7 @@ export class GameDynamic {
   }
       
   #createBoard(arrangementKeys: number[], localPlayer: TPlayer) {
-    const darkColor = colors["dark-first"].number as number;
+    const darkColor = colors["dark-first"];
 
     for (let i = 0; i < this.#quantityOfCards / 2; i++) {
       for (let j = 0; j < 2; j++) {
@@ -241,8 +241,8 @@ export class GameDynamic {
 
   setColor(colorName: string) {
     const darkColorName = `dark-${colorName}`;
-    const darkColorNumber = colors[darkColorName].number as number;
-    const colorHex = colors[colorName].hex as string
+    const darkColorNumber = colors[darkColorName];
+    const colorHex = toHexString(colors[colorName]);
     this.#scene.cameras.main.setBackgroundColor(colorHex);
     this.#cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
     this.#cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));

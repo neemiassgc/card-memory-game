@@ -2,7 +2,7 @@ import { Gameplay } from './scenes/Gameplay';
 import { AUTO, Game, Types } from "phaser";
 import { Menu } from './scenes/Menu';
 import { GameEnd } from './scenes/GameEnd';
-import { colors } from '../tools';
+import { colors, toHexString } from '../tools';
 import { Boot } from './scenes/Boot';
 import { Room } from './scenes/Room';
 
@@ -11,7 +11,7 @@ const config: Types.Core.GameConfig = {
   width: 1080,
   height: 720,
   parent: 'game-container',
-  backgroundColor: colors["first"].hex as string,
+  backgroundColor: toHexString(colors.first),
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

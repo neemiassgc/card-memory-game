@@ -1,4 +1,4 @@
-import { colors } from "@/tools";
+import { colors, toHexString } from "@/tools";
 import { Scene } from "phaser";
 
 export class GameEnd extends Scene {
@@ -8,7 +8,7 @@ export class GameEnd extends Scene {
   }
 
   create(data: { backgroundColorName: string, winner: boolean, winnerPlayerName?: string }) {
-    this.cameras.main.setBackgroundColor(colors[data.backgroundColorName].hex as string);
+    this.cameras.main.setBackgroundColor(toHexString(colors[data.backgroundColorName]));
     const screenWidth = this.scale.width;
     const screenHeight = this.scale.height;
 
@@ -22,7 +22,7 @@ export class GameEnd extends Scene {
     text.setY(screenHeight / 2 - text.height / 2 - 100);
 
     const restartText = this.add.text(0, 0, "Click anywhere on the screen to restart", {
-      color: colors["dark-"+data.backgroundColorName].hex as string,
+      color: toHexString(colors["dark-" + data.backgroundColorName]),
       fontStyle: "bold",
       fontSize: "30px",
     });

@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
-import { colors } from './tools';
+import { colors, toHexString } from './tools';
 import { EventBus } from './game/EventBus';
 
 function App()
 {
-    const [backgroundColor, setBackgroundColor] = useState(colors["first"].hex as string);
+    const [backgroundColor, setBackgroundColor] = useState(toHexString(colors["first"]));
 		const [open, setOpen] = useState(false);
 
     const phaserRef = useRef<IRefPhaserGame | null>(null);

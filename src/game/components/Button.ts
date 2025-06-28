@@ -15,7 +15,7 @@ export class Button {
     const empty = () => {};
     const { scene, x, y, key, onConfirmation = empty, onClick = empty, onDecline = empty } = initData;
 
-    const circle = scene.add.circle(x, scene.scale.height / 2 + y, 20, colors["dark-first"].number as number).setOrigin(0.5, 0.5);
+    const circle = scene.add.circle(x, scene.scale.height / 2 + y, 20, colors["dark-first"]).setOrigin(0.5, 0.5);
     const icon = scene.add.image(x, scene.scale.height / 2 + y, key)
       .setOrigin(0.5, 0.5)
       .setDepth(10);
@@ -31,6 +31,6 @@ export class Button {
     circle.on("pointerup", click);
     icon.on("pointerup", click);
 
-    scene.events.on("set-bg", (color: string) => circle.setFillStyle(colors[`dark-${color}`].number as number))
+    scene.events.on("set-bg", (color: string) => circle.setFillStyle(colors[`dark-${color}`]))
   }
 }

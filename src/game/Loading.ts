@@ -15,7 +15,7 @@ export class Loading {
     const dots = [];
 
     for (let i = 0; i < 3; i++) {
-      const cl = this.#scene.add.circle(screenWidth / 2, screenHeight / 2, 15, colors["dark-first"].number as number);
+      const cl = this.#scene.add.circle(screenWidth / 2, screenHeight / 2, 15, colors["dark-first"]);
       dots.push(cl);
     }
 
