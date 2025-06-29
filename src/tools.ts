@@ -9,6 +9,18 @@ export const colors: {[prop: string]: number } = {
   "dark-fourth": 0x9f0712,
 }
 
+export const objectKeys = [
+  "avocado", "barbarian", "carousel", "cash", "clubs",
+  "comb", "console-controller", "cpu", "drill", "gingerbread-man",
+  "goblin-camp", "honeypot", "moai", "orange", "processor",
+  "robot", "sliced-bread", "spanner", "spectre", "tesla-turret",
+  "acorn", "button-finger", "famas", "fizzing-flask", "gem-pendant",
+  "guitar", "helicopter", "jeep", "key", "light-bulb",
+  "mushroom-cloud", "plague-doctor-profile", "pumpkin-mask", "revolver",
+  "round-straw-bale", "rupee", "satellite", "space-suit", "tank",
+  "trombone", "twister", "ufo", "whistle", "round-straw-bale"
+]
+
 export function toHexString(n: number) {
   const hex = n.toString(16);
   return "#" + "0".repeat(6 - hex.length) + hex;

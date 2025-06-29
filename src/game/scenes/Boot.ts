@@ -1,4 +1,4 @@
-import { colors } from "@/tools";
+import { colors, objectKeys } from "@/tools";
 
 export class Boot extends Phaser.Scene {
 
@@ -30,15 +30,8 @@ export class Boot extends Phaser.Scene {
 
   loadAssets() {
     this.load.spritesheet("burst", "assets/burst.png", { frameWidth: 192, frameHeight: 192, startFrame: 0, endFrame: 39});
-    
-    const keys = [
-      "avocado", "barbarian", "carousel", "cash", "clubs",
-      "comb", "console-controller", "cpu", "drill", "gingerbread-man",
-      "goblin-camp", "honeypot", "moai", "orange", "processor",
-      "robot", "sliced-bread", "spanner", "spectre", "tesla-turret"
-    ]
 
-    for (const key of keys)
+    for (const key of objectKeys)
       this.load.svg(key, `assets/${key}.svg`, {width: 96, height: 96}) 
 
     this.load.svg("anticlockwise-rotation", "assets/anticlockwise-rotation.svg", {width: 32, height: 32});
