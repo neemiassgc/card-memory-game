@@ -59,9 +59,11 @@ export class Room extends Phaser.Scene {
             this.createDisplayText(table[node].player2.nickname, "down");
             block = true;
             this.#startGame({
-              player1: table[node].player1.nickname,
-              player2: table[node].player2.nickname,
-              thisPlayer: "player1",
+              playerNames: {
+                player1: table[node].player1.nickname,
+                player2: table[node].player2.nickname,
+              },
+              localPlayer: "player1",
               cardsPlacement: table[node].cardsPlacement,
               objectKeyIndexes: table[node].objectKeyIndexes,
               nodeId: node
@@ -79,9 +81,11 @@ export class Room extends Phaser.Scene {
           set(ref(firebaseDatabase, `game/table/${node}/player2/nickname`), this.nickname)
             .then(() => this.#checkState(node))
             .then(([cardsPlacement, objectKeyIndexes]) => this.#startGame({
-              player1: table[node].player1.nickname,
-              player2: this.nickname,
-              thisPlayer: "player2",
+              playerNames: {
+                player1: table[node].player1.nickname,
+                player2: this.nickname,
+              },
+              localPlayer: "player2",
               cardsPlacement,
               objectKeyIndexes,
               nodeId: node
@@ -143,19 +147,18 @@ export class Room extends Phaser.Scene {
   }
 
   #startGame(data: {
-    player1: string,
-    player2: string,
-    thisPlayer: string,
+    playerNames: {
+      player1: string,
+      player2: string,
+    },
+    localPlayer: string,
     cardsPlacement: string,
     objectKeyIndexes: string,
     nodeId: string
   }) {
     off(ref(firebaseDatabase, "game/table"), "value");
     setTimeout(() => {
-      this.scene.start("Gameplay", {
-        gameMode: "Multiplayer",
-        data
-      })
+      this.scene.start("Multiplayer", data)
     }, 1000)
   }
 }

@@ -1,14 +1,12 @@
 import { colors, parseSerializedArray, TPlayer } from "@/tools";
-import { GameDynamic } from "./GameDynamic";
-import { firebaseDatabase } from "./firebase";
+import { GameDynamic } from "../GameDynamic";
+import { firebaseDatabase } from "../firebase";
 import { DataSnapshot, off, onValue, ref, set } from "firebase/database";
-import { EventBus } from "./EventBus";
-import { Button } from "./components/Button";
-import { parse } from "path";
+import { EventBus } from "../EventBus";
+import { Button } from "../components/Button";
 
 export class Multiplayer extends GameDynamic {
-
-  #scene;
+  
   #scoreDisplay: Phaser.GameObjects.Text;
   #player1Display: Phaser.GameObjects.Text;
   #player2Display: Phaser.GameObjects.Text;
@@ -19,29 +17,36 @@ export class Multiplayer extends GameDynamic {
   #timeBarRunner: Phaser.Tweens.Tween;
   #timeBarIncrement = 0;
   #score = [0, 0];
-  #screenW;
-  #screenH;
+  #screenW: number;
+  #screenH: number;
   #localPlayer: TPlayer;
   #nextTurn: TPlayer = "player1";
   #nodeId: string
 
-  constructor(
-    scene: Phaser.Scene,
+  constructor() {
+    super("Multiplayer")
+  }
+
+  create(data: {
     playerNames: { player1: string, player2: string },
     localPlayer: TPlayer,
-    arrangementKeys: string,
+    cardsPlacement: string,
     objectKeyIndexes: string,
     nodeId: string
-  ) {
-    super(scene, "lg", parseSerializedArray(arrangementKeys), parseSerializedArray(objectKeyIndexes), localPlayer);
+  }) {
+    super.createGame(
+      "lg",
+      parseSerializedArray(data.cardsPlacement),
+      parseSerializedArray(data.objectKeyIndexes),
+      data.localPlayer
+    )
 
-    this.#scene = scene;
-    this.#screenW = this.#scene.scale.width;
-    this.#screenH = this.#scene.scale.height;
-    this.#player1 = playerNames.player1;
-    this.#player2 = playerNames.player2;
-    this.#localPlayer = localPlayer;
-    this.#nodeId = nodeId;
+    this.#screenW = this.scale.width;
+    this.#screenH = this.scale.height;
+    this.#player1 = data.playerNames.player1;
+    this.#player2 = data.playerNames.player2;
+    this.#localPlayer = data.localPlayer;
+    this.#nodeId = data.nodeId;
 
     EventBus.on("visibility-change", this.#pauseGame.bind(this))
 
@@ -58,22 +63,22 @@ export class Multiplayer extends GameDynamic {
       fontSize: 50
     }
 
-    this.#player1Display = this.#scene.add.text(0, this.#screenH, this.#player1, textProps);
+    this.#player1Display = this.add.text(0, this.#screenH, this.#player1, textProps);
 
-    this.#scoreDisplay = this.#scene.add.text(0, this.#screenH, "0 | 0", textProps);
+    this.#scoreDisplay = this.add.text(0, this.#screenH, "0 | 0", textProps);
     this.#scoreDisplay.setX(this.#screenW / 2 - this.#scoreDisplay.width / 2 );
     
-    this.#player2Display = this.#scene.add.text(0, this.#screenH, this.#player2, textProps);
+    this.#player2Display = this.add.text(0, this.#screenH, this.#player2, textProps);
     this.#player2Display.setX(this.#screenW - this.#player2Display.width);
   }
 
   #createTimeBar() {
     const barWidth = 620;
-    this.#timeBarPlaceholder = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, colors["dark-first"]);
-    this.#timeBar = this.#scene.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, 0xffffff);
+    this.#timeBarPlaceholder = this.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, colors["dark-first"]);
+    this.#timeBar = this.add.rectangle(this.#screenW + barWidth / 2, this.#screenH - 50, barWidth, 24, 0xffffff);
 
     let stop = false;
-    this.#timeBarRunner = this.#scene.add.tween({
+    this.#timeBarRunner = this.add.tween({
       targets: this.#timeBar,
       width: 0,
       duration: 20_000,
@@ -101,19 +106,19 @@ export class Multiplayer extends GameDynamic {
     switch(matchedPairs) {
       case 5: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-second"])
-        this.#scene.events.emit("set-bg", "second")
+        this.events.emit("set-bg", "second")
         super.setColor("second");
         break;
       }
       case 10: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-third"])
-        this.#scene.events.emit("set-bg", "third")
+        this.events.emit("set-bg", "third")
         super.setColor("third");
         break;
       }
       case 15: {
         this.#timeBarPlaceholder.setFillStyle(colors["dark-fourth"])
-        this.#scene.events.emit("set-bg", "fourth")
+        this.events.emit("set-bg", "fourth")
         super.setColor("fourth");
         break;
       }
@@ -143,7 +148,7 @@ export class Multiplayer extends GameDynamic {
   }
   
   #initAnimation() {
-    this.#scene.add.tweenchain({
+    this.add.tweenchain({
       tweens: [{
         targets: [this.#player1Display, this.#player2Display, this.#scoreDisplay],
         y: 10,
@@ -163,7 +168,7 @@ export class Multiplayer extends GameDynamic {
             ), true)
 
             new Button({
-              scene: this.#scene, x: 60,
+              scene: this, x: 60,
               y: 0, key: "anticlockwise-rotation",
               onConfirmation: () => set(ref(firebaseDatabase, `game/table/${this.#nodeId}/exit`), true),
               onClick: this.#pauseGame.bind(this),
@@ -182,9 +187,9 @@ export class Multiplayer extends GameDynamic {
   #update() {
     onValue(ref(firebaseDatabase, `game/table/${this.#nodeId}/paused`), snapshot => {
       const paused = snapshot.val() as boolean;
-      this.#scene.cameras.main.setAlpha(paused ? 0.4 : 1)
-      if (paused) this.#scene.scene.pause();
-      else this.#scene.scene.resume();
+      this.cameras.main.setAlpha(paused ? 0.4 : 1)
+      if (paused) this.scene.pause();
+      else this.scene.resume();
     })
 
     const setScoreFromSnapshot = (index: number) => {
@@ -235,7 +240,7 @@ export class Multiplayer extends GameDynamic {
         this.#clearListeners();
         set(ref(firebaseDatabase, `game/table/${this.#nodeId}`), null)
           .then(() => {
-            this.#scene.scene.start("Menu");
+            this.scene.start("Menu");
           })
           .catch(console.log)
       }
@@ -266,7 +271,7 @@ export class Multiplayer extends GameDynamic {
       const database = firebaseDatabase;
       set(ref(database, `game/table/${this.#nodeId}`), null)
         .then(() => {
-          this.#scene.scene.start("GameEnd", {
+          this.scene.start("GameEnd", {
             backgroundColorName: "fourth", winner: true,
             winnerPlayerName: this.#score[0] > this.#score[1] ? this.#player1 : this.#player2
           });
