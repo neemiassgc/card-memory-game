@@ -26,11 +26,25 @@ export function toHexString(n: number) {
   return "#" + "0".repeat(6 - hex.length) + hex;
 }
 
+export function generateArrayOfRandomNumbers(size: number, max: number): number[] {
+  const setOfNumbers: number[] = [];
+  for (let i = 0; i < max; i++) setOfNumbers.push(i);
+
+  const output = [];
+  for (let i = 0; i < size; i++) {
+    const randomIndex = Math.floor(Math.random() * setOfNumbers.length);
+    const number = setOfNumbers[randomIndex];
+    output.push(number);
+    setOfNumbers.splice(randomIndex, 1);
+  }
+
+  return output;
+}
+
 export function generateArrayOfNumbers(size: number): number[] {
-  const outcome: number[] = [];
-  for (let i = 0; i < size; i++)
-    outcome.push(i);
-  return outcome;
+  const output = [];
+  for (let i = 0; i < size; i++) output.push(i);
+  return output;
 }
 
 export function serialize(numbers: number[]): string {

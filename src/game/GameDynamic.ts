@@ -1,4 +1,4 @@
-import { colors, toHexString, TPlayer } from '../tools';
+import { colors, objectKeys, parseSerializedArray, toHexString, TPlayer } from '../tools';
 import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
 
@@ -26,30 +26,29 @@ export class GameDynamic {
   #quantityOfCards = 0;
   #plays = 0;
 
-  #keys = [
-    "avocado", "barbarian", "carousel", "cash", "clubs",
-    "comb", "console-controller", "cpu", "drill", "gingerbread-man",
-    "goblin-camp", "honeypot", "moai", "orange", "processor",
-    "robot", "sliced-bread", "spanner", "spectre", "tesla-turret"
-  ]
-
-  constructor(scene: Phaser.Scene, gridSize: "sm" | "lg", arrangementKeys: number[], localPlayer: TPlayer) {
+  constructor(
+    scene: Phaser.Scene,
+    gridSize: "sm" | "lg",
+    arrangementKeys: number[],
+    objectKeyIndexes: number[],
+    localPlayer: TPlayer
+  ) {
     this.#scene = scene;
     this.#burstPool = new BurstPool(2, this.#scene, colors["dark-first"])
     this.#gridSize = gridSize;
     this.#quantityOfCards = gridSize === "sm" ? 20 : 40;
 
-    this.#createBoard(arrangementKeys, localPlayer);
+    this.#createBoard(arrangementKeys, objectKeyIndexes, localPlayer);
   }
-      
-  #createBoard(arrangementKeys: number[], localPlayer: TPlayer) {
+
+  #createBoard(arrangementKeys: number[], objectKeyIndexes: number[], localPlayer: TPlayer) {
     const darkColor = colors["dark-first"];
 
-    for (let i = 0; i < this.#quantityOfCards / 2; i++) {
+    for (const keyIndex of objectKeyIndexes) {
       for (let j = 0; j < 2; j++) {
-        const card = this.#scene.add.image(0, 0, this.#keys[i]); 
+        const card = this.#scene.add.image(0, 0, objectKeys[keyIndex]);
         card.setScale(0, 1);
-        card.setName(this.#keys[i]);
+        card.setName(objectKeys[keyIndex]);
         card.setDepth(10)
         this.#cards.push(card);
       }
@@ -68,6 +67,7 @@ export class GameDynamic {
 
       cardFrame.setInteractive();
       cardBack.setInteractive();
+
       this.#cards[i].setInteractive();
 
       const tween = {
@@ -264,7 +264,10 @@ export class GameDynamic {
   }
 }
 
-function rearrangeGameObjects<A>(itemsToRearrange: A[], rearrangementIndexes: number[]): A[] {
+function rearrangeGameObjects<A extends Phaser.GameObjects.GameObject>(
+  itemsToRearrange: A[],
+  rearrangementIndexes: number[]
+): A[] {
   const output: A[] = [];
   for (const index of rearrangementIndexes)
     output.push(itemsToRearrange[index]);
