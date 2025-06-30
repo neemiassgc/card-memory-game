@@ -1,7 +1,7 @@
 import { Loading } from "../Loading";
 import { DatabaseReference, off, onValue, ref, set } from "@firebase/database";
 import { firebaseDatabase } from "../firebase"
-import { generateArrayOfNumbers, parseSerializedArray, serialize } from "@/tools";
+import { generateArrayOfNumbers, generateArrayOfRandomNumbers, objectKeys, parseSerializedArray, serialize } from "@/tools";
 import { Button } from "../components/Button";
 
 export class Room extends Phaser.Scene {
@@ -62,7 +62,8 @@ export class Room extends Phaser.Scene {
               player1: table[node].player1.nickname,
               player2: table[node].player2.nickname,
               thisPlayer: "player1",
-              cardsPlacement:  parseSerializedArray(table[node].cardsPlacement),
+              cardsPlacement: table[node].cardsPlacement,
+              objectKeyIndexes: table[node].objectKeyIndexes,
               nodeId: node
             });
           }
@@ -77,11 +78,12 @@ export class Room extends Phaser.Scene {
           block = true;
           set(ref(firebaseDatabase, `game/table/${node}/player2/nickname`), this.nickname)
             .then(() => this.#checkState(node))
-            .then(cardsPlacement => this.#startGame({
+            .then(([cardsPlacement, objectKeyIndexes]) => this.#startGame({
               player1: table[node].player1.nickname,
               player2: this.nickname,
               thisPlayer: "player2",
-              cardsPlacement: cardsPlacement as number[],
+              cardsPlacement,
+              objectKeyIndexes,
               nodeId: node
             }))
             .catch(console.log);
@@ -99,6 +101,7 @@ export class Room extends Phaser.Scene {
     const nodeRef = ref(firebaseDatabase, "game/table/" + this.nodeId);
 
     const cardsPlacement = serialize(Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(40)));
+    const objectKeyIndexes = serialize(generateArrayOfRandomNumbers(20, objectKeys.length));
     set(nodeRef, {
       turn: "player1",
       player1: {
@@ -117,12 +120,13 @@ export class Room extends Phaser.Scene {
       paused: false,
       timeBarReset: -1,
       exit: false,
-      cardsPlacement
+      cardsPlacement,
+      objectKeyIndexes
     });
   }
 
   #checkState(nodeId: string) {
-    return new Promise<number[] | string>((res, rej) => {
+    return new Promise<string[]>((res, rej) => {
       const nodeRef = ref(firebaseDatabase, "game/table/" + nodeId);
 
       onValue(nodeRef, snapshot => {
@@ -130,17 +134,21 @@ export class Room extends Phaser.Scene {
 
         const keysToCheck = [
           "turn", "player1", "player2", "timeBarReset",
-          "cardFlip", "cardsPlacement", "paused", "exit"
+          "cardFlip", "cardsPlacement", "paused", "exit", "objectKeyIndexes"
         ];
-        if (keysToCheck.some(it => !(it in obj))) rej("invalid state")
-        res(parseSerializedArray(obj["cardsPlacement"]));
+        if (keysToCheck.some(it => !(it in obj))) rej(["invalid state"])
+        res([obj["cardsPlacement"], obj["objectKeyIndexes"]])
       })();
-    })
+    });
   }
 
   #startGame(data: {
-    player1: string, player2: string, thisPlayer: string,
-    cardsPlacement: number[], nodeId: string
+    player1: string,
+    player2: string,
+    thisPlayer: string,
+    cardsPlacement: string,
+    objectKeyIndexes: string,
+    nodeId: string
   }) {
     off(ref(firebaseDatabase, "game/table"), "value");
     setTimeout(() => {

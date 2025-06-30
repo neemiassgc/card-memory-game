@@ -1,9 +1,10 @@
-import { colors, TPlayer } from "@/tools";
+import { colors, parseSerializedArray, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { firebaseDatabase } from "./firebase";
 import { DataSnapshot, off, onValue, ref, set } from "firebase/database";
 import { EventBus } from "./EventBus";
 import { Button } from "./components/Button";
+import { parse } from "path";
 
 export class Multiplayer extends GameDynamic {
 
@@ -28,10 +29,11 @@ export class Multiplayer extends GameDynamic {
     scene: Phaser.Scene,
     playerNames: { player1: string, player2: string },
     localPlayer: TPlayer,
-    arrangementKeys: number[],
+    arrangementKeys: string,
+    objectKeyIndexes: string,
     nodeId: string
   ) {
-    super(scene, "lg", arrangementKeys, localPlayer);
+    super(scene, "lg", parseSerializedArray(arrangementKeys), parseSerializedArray(objectKeyIndexes), localPlayer);
 
     this.#scene = scene;
     this.#screenW = this.#scene.scale.width;

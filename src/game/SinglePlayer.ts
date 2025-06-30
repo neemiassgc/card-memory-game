@@ -1,4 +1,4 @@
-import { generateArrayOfNumbers, TPlayer } from "@/tools";
+import { generateArrayOfNumbers, generateArrayOfRandomNumbers, objectKeys, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { Button } from "./components/Button";
 
@@ -17,6 +17,7 @@ export class SinglePlayer extends GameDynamic {
       scene,
       difficulty === "HARD" ? "lg" : "sm",
       Phaser.Utils.Array.Shuffle(generateArrayOfNumbers(difficulty === "HARD" ? 40 : 20)),
+      generateArrayOfRandomNumbers((difficulty === "HARD" ? 40 : 20) / 2, objectKeys.length),
       "player1"
     );
     this.#difficulty = difficulty;
