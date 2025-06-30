@@ -1,10 +1,11 @@
-import { Gameplay } from './scenes/Gameplay';
 import { AUTO, Game, Types } from "phaser";
 import { Menu } from './scenes/Menu';
 import { GameEnd } from './scenes/GameEnd';
 import { colors, toHexString } from '../tools';
 import { Boot } from './scenes/Boot';
 import { Room } from './scenes/Room';
+import { SinglePlayer } from './scenes/SinglePlayer';
+import { Multiplayer } from './scenes/Multiplayer';
 
 const config: Types.Core.GameConfig = {
   type: AUTO,
@@ -22,7 +23,8 @@ const config: Types.Core.GameConfig = {
     Boot,
     Menu,
     Room,
-    Gameplay,
+    SinglePlayer,
+    Multiplayer,
     GameEnd,
   ]
 };
