@@ -158,7 +158,7 @@ export class Room extends Phaser.Scene {
   }) {
     off(ref(firebaseDatabase, "game/table"), "value");
     setTimeout(() => {
-      this.scene.start("Multiplayer", data)
+      this.scene.start("Gameplay", { gameMode: "multiplayer", data })
     }, 1000)
   }
 }

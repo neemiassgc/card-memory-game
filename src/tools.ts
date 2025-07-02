@@ -18,7 +18,7 @@ export const objectKeys = [
   "guitar", "helicopter", "jeep", "key", "light-bulb",
   "mushroom-cloud", "plague-doctor-profile", "pumpkin-mask", "revolver",
   "round-straw-bale", "rupee", "satellite", "space-suit", "tank",
-  "trombone", "twister", "ufo", "whistle", "round-straw-bale"
+  "trombone", "twister", "ufo", "whistle",
 ]
 
 export function toHexString(n: number) {

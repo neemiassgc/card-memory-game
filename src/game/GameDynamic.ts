@@ -1,14 +1,13 @@
 import { colors, objectKeys, toHexString, TPlayer } from '../tools';
 import { EventBus } from './EventBus';
 import { BurstPool } from './BurstPool';
-import { Scene } from 'phaser';
 
 interface CardInfo {
   cardLocationIndex: number,
   removingCardTween: () => void,
 }
 
-export class GameDynamic extends Scene {
+export class GameDynamic {
   CARD_SIZE = 96;
 
   #cardBacks: Phaser.GameObjects.Rectangle[] = [];
@@ -25,18 +24,17 @@ export class GameDynamic extends Scene {
   #matchedPairs = 0;
   #quantityOfCards = 0;
   #plays = 0;
+  #scene: Phaser.Scene;
 
-  constructor(sceneName: string) {
-    super(sceneName)
-  }
-
-  createGame(
+  constructor(
+    scene: Phaser.Scene,
     gridSize: "sm" | "lg",
     arrangementKeys: number[],
     objectKeyIndexes: number[],
     localPlayer: TPlayer
   ) {
-    this.#burstPool = new BurstPool(2, this, colors["dark-first"])
+    this.#scene = scene;
+    this.#burstPool = new BurstPool(2, scene, colors["dark-first"])
     this.#gridSize = gridSize;
     this.#quantityOfCards = gridSize === "sm" ? 20 : 40;
 
@@ -48,7 +46,7 @@ export class GameDynamic extends Scene {
 
     for (const keyIndex of objectKeyIndexes) {
       for (let j = 0; j < 2; j++) {
-        const card = this.add.image(0, 0, objectKeys[keyIndex]);
+        const card = this.#scene.add.image(0, 0, objectKeys[keyIndex]);
         card.setScale(0, 1);
         card.setName(objectKeys[keyIndex]);
         card.setDepth(10)
@@ -59,11 +57,11 @@ export class GameDynamic extends Scene {
     this.#cards = rearrangeGameObjects(this.#cards, arrangementKeys);
 
     for (let i = 0; i < this.#quantityOfCards; i++) {
-      const cardBack = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
+      const cardBack = this.#scene.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardBack.setScale(0, 0)
       this.#cardBacks.push(cardBack);
 
-      const cardFrame = this.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
+      const cardFrame = this.#scene.add.rectangle(0, 0, this.CARD_SIZE, this.CARD_SIZE, darkColor);
       cardFrame.setScale(0, 1);
       this.#cardFrames.push(cardFrame);
 
@@ -87,7 +85,7 @@ export class GameDynamic extends Scene {
           this.#interactive = true;
         },
       }
-      const revealingCard = this.add.tweenchain({
+      const revealingCard = this.#scene.add.tweenchain({
         tweens: [
           {...tween, targets: this.#cardBacks[i]},
           {...tween, targets: [this.#cards[i], cardFrame], scaleX: 1}
@@ -96,7 +94,7 @@ export class GameDynamic extends Scene {
       })
       this.#revealingCardAnimations.push(revealingCard);
 
-      const hidingCard = this.add.tweenchain({
+      const hidingCard = this.#scene.add.tweenchain({
         tweens: [
           {...tween, targets: [cardFrame, this.#cards[i]]},
           {...tween, targets: this.#cardBacks[i], scaleX: 1}
@@ -172,7 +170,7 @@ export class GameDynamic extends Scene {
 
   checkGameEnd() {
     if (this.#matchedPairs === this.#quantityOfCards / 2) {
-      this.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
+      this.#scene.scene.start("GameEnd", { backgroundColorName: this.#backgroundColorName, winner: true });
     }
   }
 
@@ -193,8 +191,8 @@ export class GameDynamic extends Scene {
       Phaser.Actions.GridAlign(gameObjects[i], {
         width: quantityOfColumns, height: quantityOfRows,
         cellHeight: this.CARD_SIZE + cellGap, cellWidth: this.CARD_SIZE + cellGap,
-        x: this.scale.width / 2 - rowLength / 2,
-        y: this.scale.height / 2 - columnLength / 2,
+        x: this.#scene.scale.width / 2 - rowLength / 2,
+        y: this.#scene.scale.height / 2 - columnLength / 2,
       })
     }
   }
@@ -230,7 +228,7 @@ export class GameDynamic extends Scene {
     if (integrationObject.tweenObject)
       tweens.push(integrationObject.tweenObject);
     
-    this.add.tweenchain({
+    this.#scene.add.tweenchain({
       tweens: [...tweens],
       onComplete: () => {
         if (integrationObject.onComplete)
@@ -245,7 +243,7 @@ export class GameDynamic extends Scene {
     const darkColorName = `dark-${colorName}`;
     const darkColorNumber = colors[darkColorName];
     const colorHex = toHexString(colors[colorName]);
-    this.cameras.main.setBackgroundColor(colorHex);
+    this.#scene.cameras.main.setBackgroundColor(colorHex);
     this.#cardBacks.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
     this.#cardFrames.forEach(cardBack => cardBack.setFillStyle(darkColorNumber));
     this.#burstPool.tintAll(darkColorNumber);

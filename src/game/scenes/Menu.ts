@@ -69,9 +69,9 @@ export class Menu extends Scene {
     this.makeInteractiveAndColorful([easyOption, hardOption]);
 
     hardOption.on("pointerup", () =>
-      startGame(() => this.scene.start("SinglePlayer", { difficulty: "HARD" })));
+      startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", difficulty: "HARD" })));
     easyOption.on("pointerup", () =>
-      startGame(() => this.scene.start("SinglePlayer", { difficulty: "EASY" })));
+      startGame(() => this.scene.start("Gameplay", { gameMode: "SinglePlayer", difficulty: "EASY" })));
   }
 
   revealOptions(objects: Phaser.GameObjects.GameObject[]) {
