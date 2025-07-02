@@ -20,10 +20,11 @@ export class SinglePlayer extends GameDynamic {
       generateArrayOfRandomNumbers((difficulty === "HARD" ? 40 : 20) / 2, objectKeys.length),
       "player1"
     )
-
     this.#scene = scene;
     this.#difficulty = difficulty;
     this.#maxTries = difficulty === "EASY" ? 20 : 60;
+
+    console.log(difficulty)
 
     this.#createTextDisplay();
     this.#initAnimation();

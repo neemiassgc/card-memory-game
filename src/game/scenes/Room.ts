@@ -1,7 +1,7 @@
 import { Loading } from "../Loading";
 import { DatabaseReference, off, onValue, ref, set } from "@firebase/database";
 import { firebaseDatabase } from "../firebase"
-import { generateArrayOfNumbers, generateArrayOfRandomNumbers, objectKeys, parseSerializedArray, serialize } from "@/tools";
+import { generateArrayOfNumbers, generateArrayOfRandomNumbers, MultiplayerData, objectKeys, parseSerializedArray, serialize } from "@/tools";
 import { Button } from "../components/Button";
 
 export class Room extends Phaser.Scene {
@@ -146,19 +146,10 @@ export class Room extends Phaser.Scene {
     });
   }
 
-  #startGame(data: {
-    playerNames: {
-      player1: string,
-      player2: string,
-    },
-    localPlayer: string,
-    cardsPlacement: string,
-    objectKeyIndexes: string,
-    nodeId: string
-  }) {
+  #startGame(data: MultiplayerData) {
     off(ref(firebaseDatabase, "game/table"), "value");
     setTimeout(() => {
-      this.scene.start("Gameplay", { gameMode: "multiplayer", data })
+      this.scene.start("Gameplay", { gameMode: "Multiplayer", data })
     }, 1000)
   }
 }

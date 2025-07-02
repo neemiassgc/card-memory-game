@@ -57,3 +57,14 @@ export function parseSerializedArray(serializedArray: string): number[] {
 }
 
 export type TPlayer = "player1" | "player2";
+
+export interface MultiplayerData {
+  playerNames: {
+    player1: string,
+    player2: string,
+  },
+  localPlayer: TPlayer
+  cardsPlacement: string,
+  objectKeyIndexes: string,
+  nodeId: string
+}

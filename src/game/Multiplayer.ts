@@ -1,4 +1,4 @@
-import { colors, parseSerializedArray, TPlayer } from "@/tools";
+import { colors, MultiplayerData, parseSerializedArray, TPlayer } from "@/tools";
 import { GameDynamic } from "./GameDynamic";
 import { firebaseDatabase } from "./firebase";
 import { DataSnapshot, off, onValue, ref, set } from "firebase/database";
@@ -24,27 +24,21 @@ export class Multiplayer extends GameDynamic {
   #nodeId: string
   #scene: Phaser.Scene;
 
-  constructor(
-    scene: Phaser.Scene,
-    playerNames: { player1: string, player2: string },
-    localPlayer: TPlayer,
-    cardsPlacement: string,
-    objectKeyIndexes: string,
-    nodeId: string
-  ) {
+  constructor(scene: Phaser.Scene, data: MultiplayerData) {
     super(
       scene, "lg",
-      parseSerializedArray(cardsPlacement),
-      parseSerializedArray(objectKeyIndexes),
-      localPlayer
+      parseSerializedArray(data.cardsPlacement),
+      parseSerializedArray(data.objectKeyIndexes),
+      data.localPlayer
     )
 
-    this.#screenW = this.#scene.scale.width;
-    this.#screenH = this.#scene.scale.height;
-    this.#player1 = playerNames.player1;
-    this.#player2 = playerNames.player2;
-    this.#localPlayer = localPlayer;
-    this.#nodeId = nodeId;
+    this.#scene = scene;
+    this.#screenW = scene.scale.width;
+    this.#screenH = scene.scale.height;
+    this.#player1 = data.playerNames.player1;
+    this.#player2 = data.playerNames.player2;
+    this.#localPlayer = data.localPlayer;
+    this.#nodeId = data.nodeId;
 
     EventBus.on("visibility-change", this.#pauseGame.bind(this))
 
