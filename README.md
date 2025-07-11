@@ -14,4 +14,4 @@
 <img alt="html" src="https://static-10.s3.sa-east-1.amazonaws.com/card-memory-card/Desktop-preview.gif"/>
 
 ### Live Demo :fire:
-O jogo pode ser acessado neste ![Link](https://card-memory-game-alpha.vercel.app/)
+O jogo pode ser acessado neste [Link](https://card-memory-game-alpha.vercel.app/)
